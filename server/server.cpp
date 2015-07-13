@@ -241,6 +241,8 @@ int Server::startServe()
 			case 4:
 				do_cd(arg);
 				break;
+			case 10:
+				do_mkdir(arg);
 			default:
 				break;
 		}
@@ -362,6 +364,34 @@ int Server::do_cd(std::string arg)
 	return 0;
 }
 
+int Server::mk_dir(std::string dir_name)
+{
+	std::string dir_path = current_dir + dir_name;
+	//test
+	std::cout<<dir_path<<std::endl;
+	if(check_filename_out_of_bound(dir_path) == 1)
+	{
+		return -1;
+	}	
+	return mkdir(dir_path.c_str(),S_IRWXU|S_IRWXG);
+}
+
+int Server::do_mkdir(std::string arg)
+{
+	std::string dir_name;
+	std::stringstream ss;	
+	ss<<arg;
+	ss>>dir_name;
+	ss.clear();
+	if(mk_dir(dir_name) == -1)
+	{
+		sendMsg("550 Create directory operation failed.");
+		return -1;
+	}
+	sendMsg("257 Create directory successfully.");
+	return 0;
+}
+
 
 //Check wether the file exist and the type of the file.
 //0 for not exist or out of bound,1 for regular file,2 for directory.
@@ -391,6 +421,7 @@ int Server::check_filename(std::string file_path)
 }
 
 //this function is used to check whether the filepath is within the root_dir(out of bound).
+//1 for out of bound.
 int Server::check_filename_out_of_bound(std::string file_path)
 {
 	//get the full path without the root_dir.
@@ -412,7 +443,9 @@ int Server::check_filename_out_of_bound(std::string file_path)
 			count--;
 		}
 	}
-	if(count < 0)
+	//test
+	std::cout<<"count:"<<count<<std::endl;
+	if(count <= 0)
 	{
 		return 1;
 	}

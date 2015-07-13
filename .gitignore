@@ -4,3 +4,4 @@ test*
 *.swp
 server/plan
 *log/*
+*/file/*

@@ -72,6 +72,8 @@ private:
 	int do_user(std::string arg);
 	int do_size(std::string arg);
 	int do_cd(std::string arg);
+	int mk_dir(std::string dir_name);
+	int do_mkdir(std::string arg);
 	int check_filename(std::string filename);
 	int check_filename_out_of_bound(std::string filename);
 };

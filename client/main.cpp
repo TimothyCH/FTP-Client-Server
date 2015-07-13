@@ -93,6 +93,9 @@ int main(int argc,char* argv[])
 			case 4:
 				client.do_command(msg);
 				break;
+			case 10:
+				client.do_command(msg);
+				break;
 			default:
 				break;
 		}
