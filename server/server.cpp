@@ -237,22 +237,25 @@ int Server::startServe()
 		}
 		switch(com_num)
 		{
-			case 0:
+			case QUIT:
 				do_quit();
 				break;
-			case 1:
+			case USER:
 				do_user(arg);
 				break;
-			case 3:
+			case SIZE:
 				do_size(arg);
 				break;
-			case 4:
+			case CWD:
 				do_cwd(arg);
 				break;
-			case 10:
+			case CDUP:
+				do_cdup();
+				break;
+			case MKD:
 				do_mkd(arg);
 				break;
-			case 11:
+			case PWD:
 				do_pwd();
 				break;
 			default:
@@ -399,12 +402,19 @@ int Server::do_mkd(std::string arg)
 int Server::do_pwd()
 {
 	std::string msg = "257 ";
-	msg = msg + current_dir;
+	std::string dir = current_dir;
+	dir = dir.substr(root_dir.size()-1,dir.size() - (root_dir.size()-1));
+	msg = msg + "\"" + dir + "\"";
 	if(sendMsg(msg) == -1)
 	{
 		return -1;
 	}
 	return 0;
+}
+
+int Server::do_cdup()
+{
+	return do_cwd("..");
 }
 
 
@@ -457,10 +467,10 @@ int Server::check_filename_out_of_bound(std::string file_path)
 		{
 			count--;
 		}
-	}
-	if(count <= 0)
-	{
-		return 1;
+		if(count < 0)
+		{
+			return 1;
+		}
 	}
 	return 0;
 }

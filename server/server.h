@@ -31,6 +31,7 @@ const std::vector<std::string> command_vec
 	"pass",
 	"size",
 	"cwd",
+	"cdup",
 	"ls",
 	"get",
 	"mget",
@@ -40,6 +41,25 @@ const std::vector<std::string> command_vec
 	"pwd",
 	"rm",
 	"rmdir",
+};
+
+enum COMMAND
+{
+	QUIT,
+	USER,
+	PASS,
+	SIZE,
+	CWD,
+	CDUP,
+	LS,
+	GET,
+	MGET,
+	PUT,
+	MPUT,
+	MKD,
+	PWD,
+	RM,
+	RMDIR,
 };
 
 class ServerBox
@@ -74,6 +94,7 @@ private:
 	int do_user(std::string arg);
 	int do_size(std::string arg);
 	int do_cwd(std::string arg);
+	int do_cdup();
 	int mk_dir(std::string dir_name);
 	int do_mkd(std::string arg);
 	int do_pwd();
