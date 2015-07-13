@@ -30,7 +30,7 @@ const std::vector<std::string> command_vec
 	"user",
 	"pass",
 	"size",
-	"cd",
+	"cwd",
 	"ls",
 	"get",
 	"mget",
@@ -73,9 +73,10 @@ private:
 	int do_quit();
 	int do_user(std::string arg);
 	int do_size(std::string arg);
-	int do_cd(std::string arg);
+	int do_cwd(std::string arg);
 	int mk_dir(std::string dir_name);
-	int do_mkdir(std::string arg);
+	int do_mkd(std::string arg);
+	int do_pwd();
 	int check_filename(std::string filename);
 	int check_filename_out_of_bound(std::string filename);
 };

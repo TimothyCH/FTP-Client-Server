@@ -16,7 +16,7 @@ static const std::vector<std::string> command_vec
 	"mget",
 	"put",
 	"mput",
-	"mkd",
+	"mkdir",
 	"pwd",
 	"rm",
 	"rmdir",
@@ -24,11 +24,6 @@ static const std::vector<std::string> command_vec
 
 static int findCommand(std::string command)
 {
-	if(command == "mkdir")//mkdir and mkd all works.
-	{
-		return 10;
-	}
-
 	auto iter = find(command_vec.begin(),command_vec.end(),command);	
 	if(iter == command_vec.end())
 	{
@@ -106,9 +101,12 @@ int main(int argc,char* argv[])
 				client.do_command(msg);
 				break;
 			case 4:
-				client.do_command(msg);
+				client.do_cwd(msg);
 				break;
 			case 10:
+				client.do_mkdir(msg);
+				break;
+			case 11:
 				client.do_command(msg);
 				break;
 			default:

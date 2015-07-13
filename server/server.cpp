@@ -55,10 +55,6 @@ static std::string hash(std::string input)
 
 static int findCommand(std::string command)
 {
-	if(command == "mkdir")//mkdir and mkd all work.
-	{
-		return 10;
-	}
 	auto iter = find(command_vec.begin(),command_vec.end(),command);	
 	if(iter == command_vec.end())
 	{
@@ -251,10 +247,14 @@ int Server::startServe()
 				do_size(arg);
 				break;
 			case 4:
-				do_cd(arg);
+				do_cwd(arg);
 				break;
 			case 10:
-				do_mkdir(arg);
+				do_mkd(arg);
+				break;
+			case 11:
+				do_pwd();
+				break;
 			default:
 				break;
 		}
@@ -336,7 +336,7 @@ int Server::do_size(std::string arg)
 	return 0;
 }
 
-int Server::do_cd(std::string arg)
+int Server::do_cwd(std::string arg)
 {
 	std::string file_path = current_dir + arg;
 	int file_type = check_filename(file_path);	
@@ -380,7 +380,7 @@ int Server::mk_dir(std::string dir_name)
 	return mkdir(dir_path.c_str(),S_IRWXU|S_IRWXG);
 }
 
-int Server::do_mkdir(std::string arg)
+int Server::do_mkd(std::string arg)
 {
 	std::string dir_name;
 	std::stringstream ss;	
@@ -393,6 +393,17 @@ int Server::do_mkdir(std::string arg)
 		return -1;
 	}
 	sendMsg("257 Create directory successfully.");
+	return 0;
+}
+
+int Server::do_pwd()
+{
+	std::string msg = "257 ";
+	msg = msg + current_dir;
+	if(sendMsg(msg) == -1)
+	{
+		return -1;
+	}
 	return 0;
 }
 

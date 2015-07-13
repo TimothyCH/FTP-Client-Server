@@ -179,3 +179,52 @@ int Client::do_command(std::string msg)
 	return 0;
 }
 
+int Client::do_cwd(std::string msg)
+{
+	std::stringstream ss;
+	ss<<msg;
+	std::string temp_com;
+	ss>>temp_com;
+	std::string command = "cwd ";
+	std::string arg;
+	ss>>arg;
+	command = command + arg;
+	ss.clear();
+	if(sendMsg(command) == -1)
+	{
+		return -1;
+	}
+
+	std::string recv_msg;
+	if(recvMsg(recv_msg) == -1)
+	{
+		return -1;
+	}
+	std::cout<<recv_msg<<std::endl;
+	return 0;
+}
+
+int Client::do_mkdir(std::string msg)
+{	
+	std::stringstream ss;
+	ss<<msg;
+	std::string temp_com;
+	ss>>temp_com;
+	std::string command = "mkd ";
+	std::string arg;
+	ss>>arg;
+	command = command + arg;
+	ss.clear();
+	if(sendMsg(command) == -1)
+	{
+		return -1;
+	}
+
+	std::string recv_msg;
+	if(recvMsg(recv_msg) == -1)
+	{
+		return -1;
+	}
+	std::cout<<recv_msg<<std::endl;
+	return 0;
+}

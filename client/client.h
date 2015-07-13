@@ -19,7 +19,9 @@ public:
 	bool is_login();
 
 	int do_login();
-	int do_command(std::string msg);//for size,cd,mkdir,pwd,rm,rmdir,quit.
+	int do_command(std::string msg);
+	int do_cwd(std::string msg);
+	int do_mkdir(std::string msg);
 
 	~Client();
 private:
