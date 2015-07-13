@@ -1,0 +1,6 @@
+*~
+test/*
+test*
+*.swp
+server/plan
+*log/*
