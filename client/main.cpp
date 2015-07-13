@@ -6,24 +6,29 @@
 
 static const std::vector<std::string> command_vec
 {
-	"QUIT",
-	"USER",
-	"PASS",
-	"SIZE",
-	"CD",
-	"LS",
-	"GET",
-	"MGET",
-	"PUT",
-	"MPUT",
-	"MKDIR",
-	"PWD",
-	"RM",
-	"RMDIR",
+	"quit",
+	"user",
+	"pass",
+	"size",
+	"cd",
+	"ls",
+	"get",
+	"mget",
+	"put",
+	"mput",
+	"mkd",
+	"pwd",
+	"rm",
+	"rmdir",
 };
 
 static int findCommand(std::string command)
 {
+	if(command == "mkdir")//mkdir and mkd all works.
+	{
+		return 10;
+	}
+
 	auto iter = find(command_vec.begin(),command_vec.end(),command);	
 	if(iter == command_vec.end())
 	{
@@ -38,6 +43,16 @@ static std::string toUpper(std::string input)
 	for(int i=0;i<(int)input.size();i++)
 	{
 		str += toupper(input[i]);	
+	}
+	return str;
+}
+
+static std::string toLower(std::string input)
+{
+	std::string str = "";
+	for(int i=0;i<(int)input.size();i++)
+	{
+		str += tolower(input[i]);
 	}
 	return str;
 }
@@ -72,7 +87,7 @@ int main(int argc,char* argv[])
 		ss<<msg;
 		ss>>command;
 		ss.clear();
-		command = toUpper(command);
+		command = toLower(command);
 		//test
 		std::cout<<"command:"<<command<<std::endl;
 		int com_num = findCommand(command);

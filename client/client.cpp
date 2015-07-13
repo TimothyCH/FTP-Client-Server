@@ -71,6 +71,8 @@ int Client::sendMsg(std::string msg)
 	char tail[] = "\r\n";
 	strcat(buf,tail);
 	int ret = send(serverfd,buf,strlen(buf),0);
+	//test
+	std::cout<<"send:"<<buf<<std::endl;
 	if(ret <= 0)
 	{
 		std::cerr<<"send error."<<std::endl;
@@ -122,7 +124,7 @@ int Client::do_login()
 	std::cout<<"enter username:";
 	std::string username;
 	std::cin>>username;
-	std::string msg = "USER ";
+	std::string msg = "user ";
 	msg += username;
 	sendMsg(msg);
 	
@@ -136,7 +138,7 @@ int Client::do_login()
 	std::cout<<"enter the password:";
 	std::string password;
 	std::cin>>password;
-	msg = "PASS "; 
+	msg = "pass "; 
 	msg += password;
 	sendMsg(msg);
 	

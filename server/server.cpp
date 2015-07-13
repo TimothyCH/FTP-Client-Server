@@ -55,6 +55,10 @@ static std::string hash(std::string input)
 
 static int findCommand(std::string command)
 {
+	if(command == "mkdir")//mkdir and mkd all work.
+	{
+		return 10;
+	}
 	auto iter = find(command_vec.begin(),command_vec.end(),command);	
 	if(iter == command_vec.end())
 	{
@@ -69,6 +73,16 @@ static std::string toUpper(std::string input)
 	for(int i=0;i<(int)input.size();i++)
 	{
 		str += toupper(input[i]);	
+	}
+	return str;
+}
+
+static std::string toLower(std::string input)
+{
+	std::string str = "";
+	for(int i=0;i<(int)input.size();i++)
+	{
+		str += tolower(input[i]);
 	}
 	return str;
 }
@@ -210,9 +224,7 @@ int Server::startServe()
 		{
 			return -1;
 		}	
-		//test
-		std::cout<<"command:"<<command<<std::endl;
-		command = toUpper(command);	
+		command = toLower(command);	
 		int com_num = findCommand(command);	
 		if(com_num == -1)
 		{
@@ -251,8 +263,6 @@ int Server::startServe()
 
 int Server::do_quit()
 {
-	//test
-	std::cout<<"do_quit"<<std::endl;
 	sendMsg("221 Goodbye.");	
 	exit(0);
 }
@@ -328,12 +338,8 @@ int Server::do_size(std::string arg)
 
 int Server::do_cd(std::string arg)
 {
-	//test
-	std::cout<<"arg:"<<arg<<std::endl;
 	std::string file_path = current_dir + arg;
 	int file_type = check_filename(file_path);	
-	//test
-	std::cout<<"file_type:"<<file_type<<std::endl;
 	if(file_type == 0 || file_type == 1)
 	{
 		sendMsg("550 failed to change directory.");
@@ -367,8 +373,6 @@ int Server::do_cd(std::string arg)
 int Server::mk_dir(std::string dir_name)
 {
 	std::string dir_path = current_dir + dir_name;
-	//test
-	std::cout<<dir_path<<std::endl;
 	if(check_filename_out_of_bound(dir_path) == 1)
 	{
 		return -1;
@@ -443,8 +447,6 @@ int Server::check_filename_out_of_bound(std::string file_path)
 			count--;
 		}
 	}
-	//test
-	std::cout<<"count:"<<count<<std::endl;
 	if(count <= 0)
 	{
 		return 1;

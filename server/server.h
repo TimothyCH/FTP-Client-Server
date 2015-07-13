@@ -21,23 +21,25 @@ static std::string root_dir;
 static int openListenfd(int port);
 static std::string hash(std::string input);
 static int findCommand(std::string command);
+static std::string toUpper(std::string str);
+static std::string toLower(std::string str);
 
 const std::vector<std::string> command_vec
 {
-	"QUIT",
-	"USER",
-	"PASS",
-	"SIZE",
-	"CD",
-	"LS",
-	"GET",
-	"MGET",
-	"PUT",
-	"MPUT",
-	"MKDIR",
-	"PWD",
-	"RM",
-	"RMDIR",
+	"quit",
+	"user",
+	"pass",
+	"size",
+	"cd",
+	"ls",
+	"get",
+	"mget",
+	"put",
+	"mput",
+	"mkd",
+	"pwd",
+	"rm",
+	"rmdir",
 };
 
 class ServerBox
