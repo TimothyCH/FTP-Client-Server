@@ -11,6 +11,7 @@ static const std::vector<std::string> command_vec
 	"pass",
 	"size",
 	"cd",
+	"cdup",
 	"ls",
 	"get",
 	"mget",
@@ -20,6 +21,25 @@ static const std::vector<std::string> command_vec
 	"pwd",
 	"rm",
 	"rmdir",
+};
+
+enum COMMAND
+{
+	QUIT,
+	USER,
+	PASS,
+	SIZE,
+	CD,
+	CDUP,
+	LS,
+	GET,
+	MGET,
+	PUT,
+	MPUT,
+	MKDIR,
+	PWD,
+	RM,
+	RMDIR,
 };
 
 static int findCommand(std::string command)
@@ -93,22 +113,27 @@ int main(int argc,char* argv[])
 		}
 		switch(com_num)
 		{
-			case 0:
+			case QUIT:
 				client.do_command(msg);
 				return 0;
 				break;
-			case 3:
+			case SIZE:
 				client.do_command(msg);
 				break;
-			case 4:
+			case CD:
 				client.do_cwd(msg);
 				break;
-			case 10:
+			case MKDIR:
 				client.do_mkdir(msg);
 				break;
-			case 11:
+			case PWD:
 				client.do_command(msg);
 				break;
+			case CDUP:
+				client.do_command(msg);
+				break;
+			case RM:
+				client.do_rm(msg);
 			default:
 				break;
 		}

@@ -22,6 +22,7 @@ public:
 	int do_command(std::string msg);
 	int do_cwd(std::string msg);
 	int do_mkdir(std::string msg);
+	int do_rm(std::string msg);
 
 	~Client();
 private:

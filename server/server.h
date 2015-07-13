@@ -39,7 +39,7 @@ const std::vector<std::string> command_vec
 	"mput",
 	"mkd",
 	"pwd",
-	"rm",
+	"dele",
 	"rmdir",
 };
 
@@ -58,7 +58,7 @@ enum COMMAND
 	MPUT,
 	MKD,
 	PWD,
-	RM,
+	DELE,
 	RMDIR,
 };
 
@@ -98,6 +98,7 @@ private:
 	int mk_dir(std::string dir_name);
 	int do_mkd(std::string arg);
 	int do_pwd();
+	int do_dele(std::string arg);
 	int check_filename(std::string filename);
 	int check_filename_out_of_bound(std::string filename);
 };

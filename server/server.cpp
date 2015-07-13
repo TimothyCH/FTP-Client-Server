@@ -258,6 +258,8 @@ int Server::startServe()
 			case PWD:
 				do_pwd();
 				break;
+			case DELE:
+				do_dele(arg);
 			default:
 				break;
 		}
@@ -415,6 +417,33 @@ int Server::do_pwd()
 int Server::do_cdup()
 {
 	return do_cwd("..");
+}
+
+int Server::do_dele(std::string arg)
+{
+	std::string file_path = current_dir + arg;		
+	struct stat st;	
+	if(lstat(file_path.c_str(),&st) == -1)
+	{
+		sendMsg("550 Delete operation failed.");
+		return -1;
+	}
+	if(S_ISREG(st.st_mode))
+	{
+		if(unlink(file_path.c_str()) == -1)
+		{
+			sendMsg("550 Delete operation failed.");
+			return -1;
+		}	
+		sendMsg("250 Delete operation successful.");	
+		return 0;
+	}
+	else if(S_ISDIR(st.st_mode))
+	{
+		sendMsg("550 File is a directory,use RMDIR to delete.");
+		return -1;
+	}
+	return -1;
 }
 
 
