@@ -260,6 +260,8 @@ int Server::startServe()
 				break;
 			case DELE:
 				do_dele(arg);
+			case RMD:
+				do_rmd(arg);
 			default:
 				break;
 		}
@@ -444,6 +446,37 @@ int Server::do_dele(std::string arg)
 		return -1;
 	}
 	return -1;
+}
+
+int Server::do_rmd(std::string arg)
+{
+	std::string file_path = current_dir + arg;	
+	struct stat st;
+	if(lstat(file_path.c_str(),&st) == -1)
+	{
+		sendMsg("550 Remove directory operation failed.");
+		return -1;
+	}
+	if(S_ISREG(st.st_mode))
+	{
+		sendMsg("550 Not a directory name.");
+		return -1;
+	}
+	else if(S_ISDIR(st.st_mode))
+	{
+		if(arg == "." || arg == "..")
+		{
+			sendMsg("550 Remove directory operation failed.");
+			return -1;
+		}	
+		if(rmdir(file_path.c_str()) == -1)
+		{
+			sendMsg("550 Remove directory operation failed.");
+			return -1;
+		}
+	}
+	sendMsg("250 Remove directory operation successfully.");
+	return 0;
 }
 
 

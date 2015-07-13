@@ -8,7 +8,7 @@
 #include "client.h"
 
 
-static int open_clientfd(char *ip,int port)
+static int openClientfd(char *ip,int port)
 {
 	int serverfd;
 	sockaddr_in serveraddr;	
@@ -47,7 +47,7 @@ static int open_clientfd(char *ip,int port)
 
 Client::Client(char* ip,int port):login_flag(false)
 {
-	if((serverfd = open_clientfd(ip,port)) == -1)
+	if((serverfd = openClientfd(ip,port)) == -1)
 	{
 		std::cerr<<"client open_clientfd error."<<std::endl;	
 		exit(-1);
@@ -119,7 +119,7 @@ int Client::getCode(std::string msg)
 	return code;
 }
 
-int Client::do_login()
+int Client::doLogin()
 {
 	std::cout<<"enter username:";
 	std::string username;
@@ -157,12 +157,12 @@ int Client::do_login()
 	return -1;
 }
 
-bool Client::is_login()
+bool Client::isLogin()
 {
 	return login_flag;
 }
 
-int Client::do_command(std::string msg)
+int Client::doCommand(std::string msg)
 {
 	//test
 	std::cout<<"msg:"<<msg<<std::endl;
@@ -179,13 +179,13 @@ int Client::do_command(std::string msg)
 	return 0;
 }
 
-int Client::do_cwd(std::string msg)
+int Client::doChangeCommand(std::string msg,std::string new_com)
 {
 	std::stringstream ss;
 	ss<<msg;
 	std::string temp_com;
 	ss>>temp_com;
-	std::string command = "cwd ";
+	std::string command = new_com + " ";
 	std::string arg;
 	ss>>arg;
 	command = command + arg;
@@ -204,52 +204,3 @@ int Client::do_cwd(std::string msg)
 	return 0;
 }
 
-int Client::do_mkdir(std::string msg)
-{	
-	std::stringstream ss;
-	ss<<msg;
-	std::string temp_com;
-	ss>>temp_com;
-	std::string command = "mkd ";
-	std::string arg;
-	ss>>arg;
-	command = command + arg;
-	ss.clear();
-	if(sendMsg(command) == -1)
-	{
-		return -1;
-	}
-
-	std::string recv_msg;
-	if(recvMsg(recv_msg) == -1)
-	{
-		return -1;
-	}
-	std::cout<<recv_msg<<std::endl;
-	return 0;
-}
-
-int Client::do_rm(std::string msg)
-{
-	std::stringstream ss;
-	ss<<msg;
-	std::string temp_com;
-	ss>>temp_com;
-	std::string command = "dele ";
-	std::string arg;
-	ss>>arg;
-	command = command + arg;
-	ss.clear();
-	if(sendMsg(command) == -1)
-	{
-		return -1;
-	}
-
-	std::string recv_msg;
-	if(recvMsg(recv_msg) == -1)
-	{
-		return -1;
-	}
-	std::cout<<recv_msg<<std::endl;
-	return 0;
-}

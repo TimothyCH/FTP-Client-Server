@@ -83,10 +83,10 @@ int main(int argc,char* argv[])
 	char*ip = argv[1];
 	int port = atoi(argv[2]);
 	Client client(ip,port);
-	client.do_login();
+	client.doLogin();
 	std::cin.ignore(1,'\n');//remove the last '\n' in the input stream.
 
-	if(client.is_login() == false)
+	if(client.isLogin() == false)
 	{
 		return 0;
 	}
@@ -114,26 +114,30 @@ int main(int argc,char* argv[])
 		switch(com_num)
 		{
 			case QUIT:
-				client.do_command(msg);
+				client.doCommand(msg);
 				return 0;
 				break;
 			case SIZE:
-				client.do_command(msg);
+				client.doCommand(msg);
 				break;
 			case CD:
-				client.do_cwd(msg);
+				client.doChangeCommand(msg,"cwd");
 				break;
 			case MKDIR:
-				client.do_mkdir(msg);
+				client.doChangeCommand(msg,"mkd");
 				break;
 			case PWD:
-				client.do_command(msg);
+				client.doCommand(msg);
 				break;
 			case CDUP:
-				client.do_command(msg);
+				client.doCommand(msg);
 				break;
 			case RM:
-				client.do_rm(msg);
+				client.doChangeCommand(msg,"dele");
+				break;
+			case RMDIR:
+				client.doChangeCommand(msg,"rmd");
+				break;
 			default:
 				break;
 		}

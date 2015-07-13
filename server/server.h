@@ -40,7 +40,7 @@ const std::vector<std::string> command_vec
 	"mkd",
 	"pwd",
 	"dele",
-	"rmdir",
+	"rmd",
 };
 
 enum COMMAND
@@ -59,7 +59,7 @@ enum COMMAND
 	MKD,
 	PWD,
 	DELE,
-	RMDIR,
+	RMD,
 };
 
 class ServerBox
@@ -99,6 +99,7 @@ private:
 	int do_mkd(std::string arg);
 	int do_pwd();
 	int do_dele(std::string arg);
+	int do_rmd(std::string arg);
 	int check_filename(std::string filename);
 	int check_filename_out_of_bound(std::string filename);
 };

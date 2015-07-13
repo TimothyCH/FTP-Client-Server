@@ -10,19 +10,17 @@
 #define MSGLEN 100
 
 
-static int open_clientfd(char*ip,int port);
+static int openClientfd(char*ip,int port);
 
 class Client
 {
 public:
 	explicit Client(char*ip,int port);
-	bool is_login();
+	bool isLogin();
 
-	int do_login();
-	int do_command(std::string msg);
-	int do_cwd(std::string msg);
-	int do_mkdir(std::string msg);
-	int do_rm(std::string msg);
+	int doLogin();
+	int doCommand(std::string msg);
+	int doChangeCommand(std::string msg,std::string new_com);
 
 	~Client();
 private:
