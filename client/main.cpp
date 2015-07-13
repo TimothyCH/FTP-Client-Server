@@ -32,6 +32,17 @@ static int findCommand(std::string command)
 	return iter - command_vec.begin();
 }
 
+static std::string toUpper(std::string input)
+{
+	std::string str = "";
+	for(int i=0;i<(int)input.size();i++)
+	{
+		str += toupper(input[i]);	
+	}
+	return str;
+}
+
+
 int main(int argc,char* argv[])
 {
 	if(argc != 3)
@@ -61,6 +72,9 @@ int main(int argc,char* argv[])
 		ss<<msg;
 		ss>>command;
 		ss.clear();
+		command = toUpper(command);
+		//test
+		std::cout<<"command:"<<command<<std::endl;
 		int com_num = findCommand(command);
 		if(com_num == -1)
 		{
@@ -69,6 +83,10 @@ int main(int argc,char* argv[])
 		}
 		switch(com_num)
 		{
+			case 0:
+				client.do_command(msg);
+				return 0;
+				break;
 			case 3:
 				client.do_command(msg);
 				break;

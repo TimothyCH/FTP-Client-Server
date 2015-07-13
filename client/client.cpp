@@ -162,6 +162,8 @@ bool Client::is_login()
 
 int Client::do_command(std::string msg)
 {
+	//test
+	std::cout<<"msg:"<<msg<<std::endl;
 	if(sendMsg(msg) == -1)
 	{
 		return -1;

@@ -89,8 +89,7 @@ ServerBox::ServerBox(int port,std::string root_dir_input)
 		Log("ServerBox open user_db error.");
 		exit(-1);
 	}
-	std::string username;
-	std::string password;	
+	std::string username; std::string password;	
 	while(fs>>username)
 	{
 		fs>>password;
@@ -189,6 +188,7 @@ int Server::recvMsg(std::string& command,std::string& arg)
 	temp = temp.substr(0,pos);//get the message.
 	if((pos = temp.find(" ")) == std::string::npos)
 	{
+		command = temp;
 		return 0;
 	}
 	command = temp.substr(0,pos);
@@ -210,14 +210,16 @@ int Server::startServe()
 		{
 			return -1;
 		}	
+		//test
+		std::cout<<"command:"<<command<<std::endl;
 		command = toUpper(command);	
 		int com_num = findCommand(command);	
-		if(com_num < -1)
+		if(com_num == -1)
 		{
 			sendMsg("?Invalid command.");
 			continue;
 		}
-		if(com_num > 1)
+		if(com_num > 1 || com_num == 0)
 		{
 			if(is_login  == false)	
 			{
@@ -227,6 +229,9 @@ int Server::startServe()
 		}
 		switch(com_num)
 		{
+			case 0:
+				do_quit();
+				break;
 			case 1:
 				do_user(arg);
 				break;
@@ -240,6 +245,14 @@ int Server::startServe()
 				break;
 		}
 	}
+}
+
+int Server::do_quit()
+{
+	//test
+	std::cout<<"do_quit"<<std::endl;
+	sendMsg("221 Goodbye.");	
+	exit(0);
 }
 
 int Server::do_user(std::string arg)

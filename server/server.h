@@ -68,6 +68,7 @@ private:
 	int sendMsg(std::string msg);
 	int recvMsg(std::string& command,std::string& arg);
 
+	int do_quit();
 	int do_user(std::string arg);
 	int do_size(std::string arg);
 	int do_cd(std::string arg);
