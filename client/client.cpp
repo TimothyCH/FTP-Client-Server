@@ -4,6 +4,7 @@
 
 #include <sstream> // for do_login()
 #include <cstring>
+#include <regex.h>
 
 #include "client.h"
 
@@ -45,7 +46,7 @@ static int openClientfd(char *ip,int port)
 
 
 
-Client::Client(char* ip,int port):login_flag(false)
+Client::Client(char* ip,int port):login_flag(false),passive_mode(true)
 {
 	if((serverfd = openClientfd(ip,port)) == -1)
 	{
@@ -84,11 +85,12 @@ int Client::sendMsg(std::string msg)
 int Client::recvMsg(std::string& msg)
 {
 	char ch;
+	msg = "";
 	std::string buf = "";
 	while(buf.size() < MSGLEN)
 	{
 		int ret;
-		if((ret = recv(serverfd,&ch,sizeof(char),0)) < 0)
+		if((ret = recv(serverfd,&ch,sizeof(char),0)) <= 0)
 		{
 			return -1;
 		}	
@@ -162,6 +164,116 @@ bool Client::isLogin()
 	return login_flag;
 }
 
+int Client::doPasv()
+{
+	passive_mode = true;
+	std::cout<<"passive mode on."<<std::endl;
+	return 0;
+}
+
+
+int Client::pasvGetIPandPort(std::string msg,std::string& ip,int& port)
+{
+	char match[100];
+	regex_t reg;
+	int nm = 10;
+	regmatch_t pmatch[nm];	
+	char pattern[] = "([0-9]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+)";
+	
+	if(regcomp(&reg,pattern,REG_EXTENDED) < 0)
+	{
+		std::cerr<<"compile error."<<std::endl;
+	}
+	int err = regexec(&reg,msg.c_str(),nm,pmatch,0);
+	if(err == REG_NOMATCH)
+	{
+		std::cout<<"No ip and port match in pasv message."<<std::endl;
+		return -1;
+	}
+	if(err)
+	{
+		std::cout<<"pasv message regex match error."<<std::endl;
+		return -1;
+	}
+	for(int i=0;i<nm && pmatch[i].rm_so!=-1;i++)
+	{
+		int len = pmatch[i].rm_eo-pmatch[i].rm_so;
+		if(len)
+		{
+			memset(match,'\0',sizeof(match));
+			memcpy(match,msg.c_str()+pmatch[i].rm_so,len);
+			break;
+		}
+	}
+
+	int d1,d2,d3,d4,d5,d6;
+	sscanf(match,"%d,%d,%d,%d,%d,%d",&d1,&d2,&d3,&d4,&d5,&d6);
+	std::stringstream ss;
+	ss<<d1<<"."<<d2<<"."<<d3<<"."<<d4;
+	ss>>ip;
+	ss.clear();
+	port = d5*256 + d6;
+
+	return 0;
+}
+
+int Client::pasvMode()
+{
+	sendMsg("pasv");
+	std::string msg;
+	if(recvMsg(msg) == -1)
+	{
+		return -1;
+	}
+	std::string ip;
+	int port;
+	int ret = pasvGetIPandPort(msg,ip,port);
+	if(ret == -1)
+	{
+		Log("pasv can't get ip and port.");
+		return -1;
+	}
+	int datafd = openClientfd((char*)ip.c_str(),port);
+	if(datafd == -1)
+	{
+		Log("pasv can't connect to server.");
+		return -1;
+	}	
+	return datafd;
+}
+
+int Client::doLs()
+{
+	int datafd;
+	if(passive_mode == true)
+	{
+		datafd = pasvMode();		
+		if(datafd == -1)
+		{
+			Log("list pasv error.");
+			return -1;
+		}
+	}	
+	else
+	{
+		datafd = -1;	
+	}
+
+	sendMsg("list");
+	std::string msg;
+	recvMsg(msg);
+	std::cout<<msg<<std::endl;
+		
+	char ch;
+	while(recv(datafd,&ch,1,0) > 0)
+	{
+		std::cout<<ch;
+	}
+	recvMsg(msg);
+	std::cout<<msg<<std::endl;
+	return 0;				
+}
+
 int Client::doCommand(std::string msg)
 {
 	//test
@@ -179,7 +291,7 @@ int Client::doCommand(std::string msg)
 	return 0;
 }
 
-int Client::doChangeCommand(std::string msg,std::string new_com)
+int Client::doCommand(std::string msg,std::string new_com)
 {
 	std::stringstream ss;
 	ss<<msg;

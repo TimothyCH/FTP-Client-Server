@@ -19,17 +19,23 @@ public:
 	bool isLogin();
 
 	int doLogin();
+	int doPasv();
+	int doLs();
 	int doCommand(std::string msg);
-	int doChangeCommand(std::string msg,std::string new_com);
+	int doCommand(std::string msg,std::string new_com);
 
 	~Client();
 private:
 	Client();
 	int serverfd;
 	bool login_flag;
+	bool passive_mode;
 	int recvMsg(std::string& msg);
 	int sendMsg(std::string msg);
 	int getCode(std::string msg);
+
+	int pasvMode();
+	int pasvGetIPandPort(std::string msg,std::string& ip,int&port);
 };
 
 #endif

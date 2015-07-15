@@ -20,7 +20,9 @@ static const std::vector<std::string> command_vec
 	"mkdir",
 	"pwd",
 	"rm",
+	"delete",
 	"rmdir",
+	"pasv",
 };
 
 enum COMMAND
@@ -39,7 +41,9 @@ enum COMMAND
 	MKDIR,
 	PWD,
 	RM,
+	DELETE,
 	RMDIR,
+	PASV,
 };
 
 static int findCommand(std::string command)
@@ -121,10 +125,10 @@ int main(int argc,char* argv[])
 				client.doCommand(msg);
 				break;
 			case CD:
-				client.doChangeCommand(msg,"cwd");
+				client.doCommand(msg,"cwd");
 				break;
 			case MKDIR:
-				client.doChangeCommand(msg,"mkd");
+				client.doCommand(msg,"mkd");
 				break;
 			case PWD:
 				client.doCommand(msg);
@@ -133,10 +137,19 @@ int main(int argc,char* argv[])
 				client.doCommand(msg);
 				break;
 			case RM:
-				client.doChangeCommand(msg,"dele");
+				client.doCommand(msg,"dele");
+				break;
+			case DELETE:
+				client.doCommand(msg,"dele");
 				break;
 			case RMDIR:
-				client.doChangeCommand(msg,"rmd");
+				client.doCommand(msg,"rmd");
+				break;
+			case PASV:
+				client.doPasv();
+				break;
+			case LS:
+				client.doLs();
 				break;
 			default:
 				break;

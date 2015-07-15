@@ -23,6 +23,7 @@ static std::string hash(std::string input);
 static int findCommand(std::string command);
 static std::string toUpper(std::string str);
 static std::string toLower(std::string str);
+static std::string getIP();
 
 const std::vector<std::string> command_vec
 {
@@ -32,7 +33,7 @@ const std::vector<std::string> command_vec
 	"size",
 	"cwd",
 	"cdup",
-	"ls",
+	"list",
 	"get",
 	"mget",
 	"put",
@@ -41,6 +42,8 @@ const std::vector<std::string> command_vec
 	"pwd",
 	"dele",
 	"rmd",
+	"mv",
+	"pasv",
 };
 
 enum COMMAND
@@ -51,7 +54,7 @@ enum COMMAND
 	SIZE,
 	CWD,
 	CDUP,
-	LS,
+	LIST,
 	GET,
 	MGET,
 	PUT,
@@ -60,6 +63,8 @@ enum COMMAND
 	PWD,
 	DELE,
 	RMD,
+	MV,
+	PASV,
 };
 
 class ServerBox
@@ -82,6 +87,7 @@ public:
 private:
 	std::string current_dir;
 	int clientfd;
+	int datafd;
 	std::string clientip;
 
 	bool is_login;
@@ -100,6 +106,12 @@ private:
 	int do_pwd();
 	int do_dele(std::string arg);
 	int do_rmd(std::string arg);
+	int do_mv(std::string arg);
+	int rm_dir(std::string dir_full_path);
+	int ls(std::string path,std::string& ret);
+	int do_list();
+
+	int do_pasv();
 	int check_filename(std::string filename);
 	int check_filename_out_of_bound(std::string filename);
 };
