@@ -292,6 +292,9 @@ int Server::startServe()
 			case PASV:
 				do_pasv();
 				break;
+			case RETR:
+				do_retr(arg);
+				break;
 			default:
 				break;
 		}
@@ -658,18 +661,38 @@ int Server::do_list()
 		sendMsg("226 Directory Send Ok.");
 		return -1;
 	}
+	//can't do with send all data once,may cause unpredicted result.
 	/*
+	ret = ret + '\n';
 	char buf[] = "";
 	strcat(buf,ret.c_str());
-	char tail[] = "\n";
-	strcat(buf,tail);
 	if(send(datafd,buf,strlen(buf),0) <= 0)
 	{
 		sendMsg("425 data connection failed.");
 		return -1;
 	}
 	*/
+	//send each piece at a time.
 	ret = ret + '\n';
+	std::vector<std::string> str_vec;
+	while(ret.size() > MSGLEN)
+	{
+		str_vec.push_back(ret.substr(0,MSGLEN));	
+		ret = ret.substr(MSGLEN,ret.size() - MSGLEN);
+	}
+	str_vec.push_back(ret);
+	for(auto i = str_vec.begin();i != str_vec.end();i++)
+	{
+		char buf[MSGLEN+1];
+		strcpy(buf,(*i).c_str());
+		if(send(datafd,buf,strlen(buf)*sizeof(char),0) <= 0)
+		{
+			sendMsg("425 data connection failed.");
+			return -1;
+		}		
+	}
+	//too slow to send one by one.
+	/*
 	for(int i=0;i<(int)ret.size();i++)
 	{
 		char ch = ret[i];
@@ -679,14 +702,72 @@ int Server::do_list()
 			return -1;
 		}
 	}
+	*/
+	
 	shutdown(datafd,SHUT_RDWR);
 	close(datafd);
 	datafd = -1;
 
-	int num = sendMsg("226 Directory Send OK.");
-	std::cout<<"num:"<<num<<std::endl;
+	sendMsg("226 Directory Send OK.");
 
 	return 0;
+}
+
+int Server::do_retr(std::string arg)
+{
+	if(datafd == -1)
+	{
+		sendMsg("425 Use PORT or PASV first.");
+		return -1;
+	}	
+	if(check_filename(current_dir + arg) != 1)
+	{
+		sendMsg("550 Failed to open file.");
+		return -1;
+	}
+	
+	std::string file_path = current_dir + arg;
+	std::fstream fs;
+	fs.open(file_path,std::ios::in);
+	if(!fs.is_open())
+	{
+		sendMsg("550 Failed to open file.");
+		close(datafd);
+		return -1;
+	}	
+	sendMsg("150 Opening data connection for file.");	
+	
+	char tempc;
+	while(true)
+	{
+		if(!fs)
+		{
+			break;
+		}
+		char buf[MSGLEN];
+		int count = 0;
+		while(fs.get(tempc))
+		{
+			buf[count++] = tempc;
+			if(count == MSGLEN)
+			{
+				break;
+			}
+		}
+
+		if(send(datafd,buf,count,0) == -1)
+		{
+			sendMsg("425 data connection failed.");	
+			return -1;
+		}
+	}
+	fs.close();
+	shutdown(datafd,SHUT_RDWR);
+	close(datafd);
+	sendMsg("226 Transfer complete.");
+
+	return 0;
+
 }
 
 

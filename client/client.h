@@ -21,6 +21,7 @@ public:
 	int doLogin();
 	int doPasv();
 	int doLs();
+	int doGet(std::string msg);
 	int doCommand(std::string msg);
 	int doCommand(std::string msg,std::string new_com);
 

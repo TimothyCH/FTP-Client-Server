@@ -5,6 +5,8 @@
 #include <sstream> // for do_login()
 #include <cstring>
 #include <regex.h>
+#include <unistd.h>
+#include <fstream>
 
 #include "client.h"
 
@@ -107,6 +109,30 @@ int Client::recvMsg(std::string& msg)
 	}
 	msg = msg.substr(0,pos);
 	return 0;
+/*
+	msg = "";
+	while(true)
+	{
+		int num;
+		char buf[MSGLEN];
+		//test
+		std::cout<<"getgetget"<<std::endl;
+		if((num = recv(serverfd,buf,sizeof(buf),0)) <= 0)
+		{
+			break;	
+		}	
+		std::string temp = buf;	
+		temp = temp.substr(0,num);
+		msg = msg + temp;
+	}
+	size_t pos;
+	if((pos = msg.find("\r\n")) == std::string::npos)
+	{
+		return 0;	
+	}
+	msg = msg.substr(0,pos);
+	return 0;
+*/
 }
 
 int Client::getCode(std::string msg)
@@ -248,7 +274,7 @@ int Client::doLs()
 		datafd = pasvMode();		
 		if(datafd == -1)
 		{
-			Log("list pasv error.");
+			Log("pasv error.");
 			return -1;
 		}
 	}	
@@ -261,15 +287,112 @@ int Client::doLs()
 	std::string msg;
 	recvMsg(msg);
 	std::cout<<msg<<std::endl;
-		
+	//too slow to recv one by one.
+	/*
 	char ch;
 	while(recv(datafd,&ch,1,0) > 0)
 	{
 		std::cout<<ch;
 	}
+	*/
+	while(true)
+	{
+		char buf[MSGLEN];	
+		int num;
+		if((num = recv(datafd,buf,sizeof(buf),0)) <= 0)
+		{
+			break;
+		}	
+		std::string str = buf;
+		str = str.substr(0,num);
+		std::cout<<str;
+	}
+	close(datafd);
 	recvMsg(msg);
 	std::cout<<msg<<std::endl;
 	return 0;				
+}
+
+int Client::doGet(std::string msg)
+{
+	int datafd;
+	if(passive_mode == true)
+	{
+		datafd = pasvMode();		
+		if(datafd == -1)
+		{
+			Log("pasv error.");
+			return -1;
+		}
+	}	
+	else
+	{
+		datafd = -1;	
+	}
+
+	std::stringstream ss;	
+	ss<<msg;
+	std::string com_temp;
+	ss>>com_temp;
+	std::string remote_name;
+	ss>>remote_name;
+	std::string local_name;
+	if(ss>>local_name){}
+	else
+	{
+		local_name = remote_name;
+	}
+
+	std::string command = "retr ";	
+	command += remote_name;
+	sendMsg(command);
+
+	std::string recv_msg;
+	recvMsg(recv_msg);
+	std::cout<<recv_msg<<std::endl;
+	if(getCode(recv_msg) != 150)
+	{
+		close(datafd);	
+		return 0;
+	}	
+		
+	std::fstream fs;
+	fs.open(local_name,std::ios::out | std::ios::trunc);	
+	if(fs.is_open() == false)
+	{
+		std::cerr<<"open local file error."<<std::endl;
+		close(datafd);
+		return -1;
+	}
+
+	/*
+	char ch;
+	while(recv(datafd,&ch,1,0) > 0)
+	{
+		fs<<ch;	
+	}
+	fs.close();
+	close(datafd);
+	*/	
+	while(true)
+	{
+		char buf[MSGLEN];	
+		int num;
+	//	std::string temp;
+		if((num = recv(datafd,buf,sizeof(buf),0)) <= 0)
+		{
+			break;	
+		}
+		for(int i=0;i<num;i++)
+		{
+			fs<<buf[i];
+		}
+	}
+	fs.close();
+	close(datafd);
+	recvMsg(recv_msg);
+	std::cout<<recv_msg<<std::endl;
+	return 0;
 }
 
 int Client::doCommand(std::string msg)
