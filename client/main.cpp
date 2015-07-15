@@ -154,6 +154,9 @@ int main(int argc,char* argv[])
 			case GET:
 				client.doGet(msg);
 				break;
+			case PUT:
+				client.doPut(msg);
+				break;
 			default:
 				break;
 		}

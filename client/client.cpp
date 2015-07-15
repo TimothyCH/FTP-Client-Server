@@ -337,8 +337,7 @@ int Client::doGet(std::string msg)
 	std::string remote_name;
 	ss>>remote_name;
 	std::string local_name;
-	if(ss>>local_name){}
-	else
+	if(!(ss>>local_name))
 	{
 		local_name = remote_name;
 	}
@@ -378,7 +377,6 @@ int Client::doGet(std::string msg)
 	{
 		char buf[MSGLEN];	
 		int num;
-	//	std::string temp;
 		if((num = recv(datafd,buf,sizeof(buf),0)) <= 0)
 		{
 			break;	
@@ -392,6 +390,91 @@ int Client::doGet(std::string msg)
 	close(datafd);
 	recvMsg(recv_msg);
 	std::cout<<recv_msg<<std::endl;
+	return 0;
+}
+
+
+int Client::doPut(std::string msg)
+{
+	std::stringstream ss;
+	ss<<msg;
+	std::string temp_com;
+	ss>>temp_com;
+	std::string local_name;
+	ss>>local_name;
+	std::string remote_name;
+	if(!(ss>>remote_name))
+	{
+		remote_name = local_name;
+	}
+
+	std::fstream fs;
+	fs.open(local_name,std::ios::in);	
+	if(fs.is_open() == false)
+	{
+		std::cerr<<"open local file error."<<std::endl;
+		return -1;
+	}
+
+
+	int datafd;
+	if(passive_mode == true)
+	{
+		datafd = pasvMode();		
+		if(datafd == -1)
+		{
+			Log("pasv error.");
+			return -1;
+		}
+	}	
+	else
+	{
+		datafd = -1;	
+	}
+		
+	std::string command = "stor ";
+	command += remote_name;
+	sendMsg(command);
+
+	std::string recv_msg;
+	recvMsg(recv_msg);
+	if(getCode(recv_msg) != 150)
+	{
+		return -1;
+	}
+
+	char tempc;
+	while(true)
+	{
+		if(!fs)
+		{
+			break;
+		}
+		char buf[MSGLEN];
+		int count = 0;
+		while(fs.get(tempc))
+		{
+			buf[count++] = tempc;
+			if(count == MSGLEN)
+			{
+				break;
+			}
+		}
+
+		if(send(datafd,buf,count,0) == -1)
+		{
+			sendMsg("425 data connection failed.");	
+			return -1;
+		}
+	}
+
+	fs.close();
+	shutdown(datafd,SHUT_RDWR);
+	close(datafd);
+
+	recvMsg(recv_msg);
+	std::cout<<recv_msg<<std::endl;
+
 	return 0;
 }
 
