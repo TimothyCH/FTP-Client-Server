@@ -239,14 +239,10 @@ int Server::startServe()
 	std::string command,arg;
 	while(true)
 	{
-		//test
-		std::cout<<"new cycle"<<std::endl;
 		if(recvMsg(command,arg) == -1)
 		{
 			return -1;
 		}	
-		//test
-		std::cout<<"command:"<<command<<std::endl;
 		int com_num = findCommand(command);	
 		if(com_num == -1)
 		{
@@ -292,8 +288,6 @@ int Server::startServe()
 				break;
 			case LIST:
 				do_list();
-				//test
-				std::cout<<"out of list."<<std::endl;
 				break;
 			case PASV:
 				do_pasv();
@@ -517,8 +511,6 @@ int Server::do_rmd(std::string arg)
 
 int Server::do_pasv()
 {
-	//test
-	std::cout<<"into the pasv"<<std::endl;
 	int port = 2000;		
 	int retfd = open_listenfd(port);
 	while(retfd == -1)
@@ -531,8 +523,6 @@ int Server::do_pasv()
 		}
 		retfd = open_listenfd(port);
 	}
-	//test
-	std::cout<<"open right."<<std::endl;
 	std::cout<<"port:"<<port<<std::endl;
 	
 	std::string ip;
@@ -562,6 +552,9 @@ int Server::do_pasv()
 		sendMsg("425 PASV can't receive connection.");
 		return -1;
 	}
+
+	shutdown(retfd,SHUT_RDWR);//shutdown the listenfd.
+	close(retfd);
 	return 0;
 }
 
@@ -590,13 +583,13 @@ int Server::ls(std::string path,std::string& ret)
 			continue;
 		}
 		std::string name = dir->d_name;
-
+		/*
 		//replace the blank char in name with "%$".
 		while(name.find(" ") != std::string::npos)
 		{
 			name.replace(name.find(" "),1,"$%");	
 		}
-
+		*/
 		if(S_ISDIR(st.st_mode))
 		{
 			name += "[d]";
@@ -634,7 +627,7 @@ int Server::ls(std::string path,std::string& ret)
 	{
 		ss_ret<<*i;
 		count++;
-		if(count%5 == 0)
+		if(count%5 == 0 && i != file_name.end() - 1)
 		{
 			ss_ret<<std::endl;
 		}
@@ -686,6 +679,7 @@ int Server::do_list()
 			return -1;
 		}
 	}
+	shutdown(datafd,SHUT_RDWR);
 	close(datafd);
 	datafd = -1;
 

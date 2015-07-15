@@ -72,8 +72,6 @@ int Client::sendMsg(std::string msg)
 	char tail[] = "\r\n";
 	strcat(buf,tail);
 	int ret = send(serverfd,buf,strlen(buf),0);
-	//test
-	std::cout<<"send:"<<buf<<std::endl;
 	if(ret <= 0)
 	{
 		std::cerr<<"send error."<<std::endl;
@@ -276,8 +274,6 @@ int Client::doLs()
 
 int Client::doCommand(std::string msg)
 {
-	//test
-	std::cout<<"msg:"<<msg<<std::endl;
 	if(sendMsg(msg) == -1)
 	{
 		return -1;
