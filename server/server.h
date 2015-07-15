@@ -35,9 +35,7 @@ const std::vector<std::string> command_vec
 	"cdup",
 	"list",
 	"retr",
-	"mget",
-	"put",
-	"mput",
+	"stor",
 	"mkd",
 	"pwd",
 	"dele",
@@ -56,9 +54,7 @@ enum COMMAND
 	CDUP,
 	LIST,
 	RETR,
-	MGET,
-	PUT,
-	MPUT,
+	STOR,
 	MKD,
 	PWD,
 	DELE,
@@ -111,6 +107,7 @@ private:
 	int ls(std::string path,std::string& ret);
 	int do_list();
 	int do_retr(std::string arg);
+	int do_stor(std::string arg);
 
 	int do_pasv();
 	int check_filename(std::string filename);

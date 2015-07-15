@@ -438,6 +438,7 @@ int Client::doPut(std::string msg)
 
 	std::string recv_msg;
 	recvMsg(recv_msg);
+	std::cout<<recv_msg<<std::endl;
 	if(getCode(recv_msg) != 150)
 	{
 		return -1;

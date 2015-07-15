@@ -295,6 +295,9 @@ int Server::startServe()
 			case RETR:
 				do_retr(arg);
 				break;
+			case STOR:
+				do_stor(arg);
+				break;
 			default:
 				break;
 		}
@@ -526,7 +529,6 @@ int Server::do_pasv()
 		}
 		retfd = open_listenfd(port);
 	}
-	std::cout<<"port:"<<port<<std::endl;
 	
 	std::string ip;
 	if(getIP(ip) == -1)
@@ -771,6 +773,44 @@ int Server::do_retr(std::string arg)
 }
 
 
+int Server::do_stor(std::string arg)
+{
+	if(datafd == -1)
+	{
+		sendMsg("425 Use PORT or PASV first.");
+		return -1;
+	}	
+	
+	std::string file_path = current_dir + arg;
+	std::fstream fs;
+	fs.open(file_path,std::ios::out);
+	if(fs.is_open() == false)
+	{
+		sendMsg("553 Could not create file.");	
+		return -1;
+	}
+
+	sendMsg("150 ok to send data.");
+
+	while(true)
+	{
+		char buf[MSGLEN];
+		int num;
+		if((num = recv(datafd,buf,sizeof(buf),0)) <= 0)
+		{
+			break;
+		}
+		for(int i=0;i<num;i++)
+		{
+			fs<<buf[i];
+		}
+	}
+	fs.close();
+	shutdown(datafd,SHUT_RDWR);
+	close(datafd);
+	sendMsg("226 Transfer complete.");
+	return 0;	
+}
 
 //Check wether the file exist and the type of the file.
 //0 for not exist or out of bound,1 for regular file,2 for directory.
