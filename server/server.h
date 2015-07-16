@@ -85,8 +85,9 @@ public:
 private:
 	std::string current_dir;
 	int clientfd;
-	int datafd;
-	std::string port_info;//record port ip and port info.
+	int datafd;//datafd = -1 means no connection,datafd = -2 mean port mode.
+	std::string port_ip;//record ip in portmode.
+	int port_port;//record port in portmode.
 	std::string clientip;
 
 	bool is_login;
@@ -114,6 +115,9 @@ private:
 	int do_stor(std::string arg);
 
 	int do_pasv();
+	int doPortRecv(std::string arg);
+	int doPortConnect();
+	int getIPandPortFromPortInfo(std::string port_info,std::string& ip,int& port);
 	int check_filename(std::string filename);
 	int check_filename_out_of_bound(std::string filename);
 };

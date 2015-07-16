@@ -358,6 +358,7 @@ int Client::portModeSend()
 	if(getIP(ip) == -1)
 	{
 		std::cerr<<"port can't get local ip."<<std::endl;
+		close(retfd);
 		return -1;
 	}
 #ifdef NAT
@@ -382,6 +383,7 @@ int Client::portModeSend()
 	std::cout<<recv_msg<<std::endl;
 	if(getCode(recv_msg) != 200)
 	{
+		close(retfd);
 		return -1;
 	}
 	return retfd;
@@ -414,6 +416,8 @@ int Client::doLs()
 		if(datafd == -1)
 		{
 			Log("pasv error.");
+			close(datafd);
+			datafd = -1;
 			return -1;
 		}
 	}	
@@ -440,6 +444,13 @@ int Client::doLs()
 	std::string msg;
 	recvMsg(msg);
 	std::cout<<msg<<std::endl;
+	if(getCode(msg) != 150)//connection failed.
+	{
+		close(datafd);
+		datafd = -1;
+		close(retfd);
+		return -1;
+	}
 	//too slow to recv one by one.
 	/*
 	char ch;
@@ -623,6 +634,7 @@ int Client::doPut(std::string msg)
 	std::cout<<recv_msg<<std::endl;
 	if(getCode(recv_msg) != 150)
 	{
+		close(datafd);
 		return -1;
 	}
 

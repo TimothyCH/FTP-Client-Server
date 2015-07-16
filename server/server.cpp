@@ -52,6 +52,41 @@ static int open_listenfd(int port)
 	return listenfd;
 }
 
+static int open_clientfd(char*ip,int port)
+{
+	int serverfd;
+	sockaddr_in serveraddr;	
+	if((serverfd = socket(AF_INET,SOCK_STREAM,0)) < 0)
+	{
+		Log("open_clientfd:get socket serverfd error.");
+		return -1;
+	}
+
+	memset(&serveraddr,0,sizeof(sockaddr_in));
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_port = htons(port);
+	in_addr sin;
+	int temp;
+	if((temp = inet_pton(AF_INET,ip,&sin)) == 0)
+	{
+		Log("open_clientfd:invalid ip address.");
+		return -1;
+	}
+	else if(temp == -1)
+	{
+		Log("open_clientfd:inet_pton error.");
+		return -1;
+	}
+	serveraddr.sin_addr = sin;
+
+	if(connect(serverfd,(sockaddr*)&serveraddr,sizeof(sockaddr)) < 0)
+	{
+		Log("open_clientfd:connect to serveraddr error.");
+		return -1;
+	}
+	return serverfd;
+}
+
 static std::string hash(std::string input)
 {
 	MD5 md5;
@@ -299,6 +334,9 @@ int Server::startServe()
 				break;
 			case STOR:
 				do_stor(arg);
+				break;
+			case PORT:
+				doPortRecv(arg);
 				break;
 			default:
 				break;
@@ -564,6 +602,49 @@ int Server::do_pasv()
 	close(retfd);
 	return 0;
 }
+
+int Server::doPortRecv(std::string arg)
+{
+	std::string port_info = arg;
+	if(getIPandPortFromPortInfo(port_info,port_ip,port_port) == -1)
+	{
+		sendMsg("500 Illegal port command.");
+		return -1;
+	}	
+	sendMsg("200 port command successful.");	
+	datafd = -2;
+	return 0;
+}
+
+int Server::doPortConnect()
+{
+	datafd = open_clientfd((char*)port_ip.c_str(),port_port);
+	if(datafd == -1)
+	{
+		sendMsg("425 failed to establish connection.");
+		return -1;
+	}
+	return 0;
+}
+
+int Server::getIPandPortFromPortInfo(std::string port_info,std::string& ip,int& port)
+{
+	ip = "";
+	port = -1;
+	int d1,d2,d3,d4,d5,d6;
+	if(sscanf(port_info.c_str(),"%d,%d,%d,%d,%d,%d",
+				&d1,&d2,&d3,&d4,&d5,&d6) == -1)
+	{
+		return -1;
+	}
+	char buf[100];
+	sprintf(buf,"%d.%d.%d.%d",d1,d2,d3,d4);
+	ip = buf;
+	port = d5*256 + d6;
+	return 0;
+}
+
+
 /*
 //list the file name in the current_dir in alphabetical order,directories first then regular files.
 int Server::ls(std::string path,std::string& ret)
@@ -769,7 +850,7 @@ int Server::ls(std::string dir_path,std::string& ret)
 		{
 			continue;
 		}
-		ret += file_info + '\n';
+		ret += file_info + "\r\n";
 	}
 	closedir(dirp);
 	return 0;
@@ -781,6 +862,10 @@ int Server::do_list()
 	{
 		sendMsg("425 Use PORT or PASV first.");	
 		return -1;
+	}
+	if(datafd == -2)
+	{
+		doPortConnect();	
 	}
 
 	sendMsg("150 Here comes the directory list.");
@@ -804,6 +889,10 @@ int Server::do_list()
 	}
 	*/
 	//send each piece at a time.
+	if(ret.size() == 0)//incase ret is empty and nothing send.
+	{
+		ret += "\r\n";
+	}
 	std::vector<std::string> str_vec;
 	while(ret.size() > MSGLEN)
 	{
@@ -849,6 +938,10 @@ int Server::do_retr(std::string arg)
 		sendMsg("425 Use PORT or PASV first.");
 		return -1;
 	}	
+	if(datafd == -2)
+	{
+		doPortConnect();
+	}
 	if(check_filename(current_dir + arg) != 1)
 	{
 		sendMsg("550 Failed to open file.");
@@ -862,6 +955,7 @@ int Server::do_retr(std::string arg)
 	{
 		sendMsg("550 Failed to open file.");
 		close(datafd);
+		datafd = -1;
 		return -1;
 	}	
 	sendMsg("150 Opening data connection for file.");	
@@ -887,12 +981,15 @@ int Server::do_retr(std::string arg)
 		if(send(datafd,buf,count,0) == -1)
 		{
 			sendMsg("425 data connection failed.");	
+			close(datafd);
+			datafd = -1;
 			return -1;
 		}
 	}
 	fs.close();
 	shutdown(datafd,SHUT_RDWR);
 	close(datafd);
+	datafd = -1;
 	sendMsg("226 Transfer complete.");
 
 	return 0;
@@ -907,6 +1004,10 @@ int Server::do_stor(std::string arg)
 		sendMsg("425 Use PORT or PASV first.");
 		return -1;
 	}	
+	if(datafd == -2)
+	{
+		doPortConnect();
+	}
 	
 	std::string file_path = current_dir + arg;
 	std::fstream fs;
@@ -914,6 +1015,8 @@ int Server::do_stor(std::string arg)
 	if(fs.is_open() == false)
 	{
 		sendMsg("553 Could not create file.");	
+		close(datafd);
+		datafd = -1;
 		return -1;
 	}
 
@@ -935,6 +1038,7 @@ int Server::do_stor(std::string arg)
 	fs.close();
 	shutdown(datafd,SHUT_RDWR);
 	close(datafd);
+	datafd = -1;
 	sendMsg("226 Transfer complete.");
 	return 0;	
 }
