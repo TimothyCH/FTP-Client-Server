@@ -6,6 +6,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <ifaddrs.h>
+#include <grp.h>
+#include <pwd.h>
 
 #include <cstring>
 #include <fstream>
@@ -562,7 +564,7 @@ int Server::do_pasv()
 	close(retfd);
 	return 0;
 }
-
+/*
 //list the file name in the current_dir in alphabetical order,directories first then regular files.
 int Server::ls(std::string path,std::string& ret)
 {
@@ -588,13 +590,6 @@ int Server::ls(std::string path,std::string& ret)
 			continue;
 		}
 		std::string name = dir->d_name;
-		/*
-		//replace the blank char in name with "%$".
-		while(name.find(" ") != std::string::npos)
-		{
-			name.replace(name.find(" "),1,"$%");	
-		}
-		*/
 		if(S_ISDIR(st.st_mode))
 		{
 			name += "[d]";
@@ -646,6 +641,139 @@ int Server::ls(std::string path,std::string& ret)
 	
 	return 0;
 }
+*/
+
+int Server::getFileInfo(std::string file_path,std::string file_name,std::string& ret)
+{
+	
+	ret = "";
+	struct stat st;	
+	struct passwd *pw;
+	struct group *gr;
+	struct tm *tm;
+
+	if(stat(file_path.c_str(),&st) == -1)
+	{
+		return -1;
+	}
+	
+	std::string mode = "";
+	switch(st.st_mode & S_IFMT)
+	{
+		case S_IFREG:
+			mode = "-";
+			break;
+		case S_IFDIR:
+			mode = "d";
+			break;
+		case S_IFLNK:
+			mode = "l";
+			break;
+		case S_IFBLK:
+			mode = "b";
+			break;
+		case S_IFCHR:
+			mode = "c";
+			break;
+		case S_IFIFO:
+			mode = "p";
+			break;
+		case S_IFSOCK:
+			mode = "s";
+			break;
+	}
+
+	ret +=mode;
+
+
+	for(int i=8;i >= 0;i--)
+	{
+		if(st.st_mode & (1<<i))
+		{
+			switch(i%3)
+			{
+				case 2:
+					ret += "r";
+					break;				
+				case 1:
+					ret += "w";
+					break;
+				case 0:
+					ret += "x";
+					break;
+			}
+		}	
+		else
+		{
+			ret += "-";
+		}
+	}
+
+	pw = getpwuid(st.st_uid);
+	gr = getgrgid(st.st_gid);
+
+	int pw_num,gr_num;
+	char root_buf[] = "root";
+	if(strcpy(pw->pw_name,root_buf) == 0)
+	{
+		pw_num = 0;
+	}
+	else
+	{
+		pw_num = 1000;
+	}
+	if(strcpy(gr->gr_name,root_buf) == 0)
+	{
+		gr_num = 0;
+	}
+	else
+	{
+		gr_num = 1000;
+	}
+
+	char temp1[100];
+	sprintf(temp1,"%2d %d %d %4ld",(int)st.st_nlink,pw_num,gr_num,st.st_size);
+
+	ret += temp1;
+
+	tm = localtime(&st.st_ctime);
+	char temp2[100];
+	sprintf(temp2," %04d-%02d-%02d %02d:%02d",tm->tm_year + 1900,tm->tm_mon + 1,tm->tm_mday,tm->tm_hour,tm->tm_min);
+
+	ret += temp2;
+	ret = ret + " " + file_name;
+
+	return 0;
+}
+
+int Server::ls(std::string dir_path,std::string& ret)
+{
+	ret = "";	
+	DIR* dirp = opendir(dir_path.c_str());
+	if(!dirp)
+	{
+		return -1;
+	}
+	struct dirent *dir;
+	while((dir = readdir(dirp)) != NULL)
+	{
+		if(strcmp(dir->d_name,".") == 0 ||
+				strcmp(dir->d_name,"..") == 0)
+		{
+			continue;
+		}
+		std::string full_path = dir_path + dir->d_name;
+		std::string file_info;
+
+		if(getFileInfo(full_path,dir->d_name,file_info) == -1)
+		{
+			continue;
+		}
+		ret += file_info + '\n';
+	}
+	closedir(dirp);
+	return 0;
+}
 
 int Server::do_list()
 {
@@ -663,6 +791,7 @@ int Server::do_list()
 		sendMsg("226 Directory Send Ok.");
 		return -1;
 	}
+
 	//can't do with send all data once,may cause unpredicted result.
 	/*
 	ret = ret + '\n';
@@ -675,7 +804,6 @@ int Server::do_list()
 	}
 	*/
 	//send each piece at a time.
-	ret = ret + '\n';
 	std::vector<std::string> str_vec;
 	while(ret.size() > MSGLEN)
 	{
@@ -705,7 +833,6 @@ int Server::do_list()
 		}
 	}
 	*/
-	
 	shutdown(datafd,SHUT_RDWR);
 	close(datafd);
 	datafd = -1;

@@ -11,6 +11,8 @@
 
 
 static int openClientfd(char*ip,int port);
+static int openListenfd(int port);
+static int getIP(std::string& ip);
 
 class Client
 {
@@ -31,12 +33,13 @@ private:
 	Client();
 	int serverfd;
 	bool login_flag;
-	bool passive_mode;
+	bool passive_mode;//true for passive mode,false for port mode.
 	int recvMsg(std::string& msg);
 	int sendMsg(std::string msg);
 	int getCode(std::string msg);
 
 	int pasvMode();
+	int portMode();
 	int pasvGetIPandPort(std::string msg,std::string& ip,int&port);
 };
 

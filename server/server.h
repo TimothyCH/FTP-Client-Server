@@ -104,6 +104,7 @@ private:
 	int do_rmd(std::string arg);
 	int do_mv(std::string arg);
 	int rm_dir(std::string dir_full_path);
+	int getFileInfo(std::string file_path,std::string file_name,std::string& ret);
 	int ls(std::string path,std::string& ret);
 	int do_list();
 	int do_retr(std::string arg);

@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h> // for getIP()
 
 #include <sstream> // for do_login()
 #include <cstring>
@@ -9,6 +10,8 @@
 #include <fstream>
 
 #include "client.h"
+
+#define NAT
 
 
 static int openClientfd(char *ip,int port)
@@ -44,6 +47,70 @@ static int openClientfd(char *ip,int port)
 		return -1;
 	}
 	return serverfd;
+}
+
+static int openListenfd(int port)
+{
+	int listenfd,optval = 1;
+	sockaddr_in serveraddr;
+	if((listenfd = socket(AF_INET,SOCK_STREAM,0)) < 0)
+	{
+		Log("open_listenfd:get socket error.");
+		return -1;
+	}
+	if(setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,
+				static_cast<const void*>(&optval),sizeof(int)) < 0)
+	{
+		return -1;
+	}
+	memset(&serveraddr,0,sizeof(sockaddr_in));	
+
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	serveraddr.sin_port = htons(port);
+	if(bind(listenfd,(sockaddr*)&serveraddr,sizeof(sockaddr_in)) < 0)
+	{
+		Log("open_listenfd:bind serveraddr to listen error.");
+		return -1;
+	}
+	if(listen(listenfd,SOMAXCONN) < 0)
+	{
+		Log("open_listenfd:listen error.");
+		return -1;
+	}
+	return listenfd;
+}
+
+static int getIP(std::string& ip)
+{
+	
+	struct ifaddrs *ifAddrStruct = NULL;
+	void *tmpAddPtr = NULL;
+	if(getifaddrs(&ifAddrStruct) == -1)
+	{
+		return -1;
+	}
+
+
+	while(ifAddrStruct != NULL)
+	{
+		if(ifAddrStruct->ifa_addr->sa_family == AF_INET)
+		{
+			tmpAddPtr = &((struct sockaddr_in *)ifAddrStruct->ifa_addr)->sin_addr;
+			char addressBuffer[INET_ADDRSTRLEN];
+			inet_ntop(AF_INET,tmpAddPtr,addressBuffer,INET_ADDRSTRLEN);
+			//printf("%s IP Address %s\n",ifAddrStruct->ifa_name,addressBuffer);
+			ip = addressBuffer;
+			if(ip != "127.0.0.1")
+			{
+				return 0;
+			}
+		}
+		ifAddrStruct = ifAddrStruct->ifa_next;
+
+	}
+	ip = "127.0.0.1";
+	return 0;
 }
 
 
@@ -115,8 +182,6 @@ int Client::recvMsg(std::string& msg)
 	{
 		int num;
 		char buf[MSGLEN];
-		//test
-		std::cout<<"getgetget"<<std::endl;
 		if((num = recv(serverfd,buf,sizeof(buf),0)) <= 0)
 		{
 			break;	
@@ -190,11 +255,18 @@ bool Client::isLogin()
 
 int Client::doPasv()
 {
-	passive_mode = true;
-	std::cout<<"passive mode on."<<std::endl;
+	if(passive_mode == false)
+	{
+		passive_mode = true;
+		std::cout<<"passive mode on."<<std::endl;
+	}
+	else
+	{
+		passive_mode = false;
+		std::cout<<"passive mode off."<<std::endl;
+	}
 	return 0;
 }
-
 
 int Client::pasvGetIPandPort(std::string msg,std::string& ip,int& port)
 {
@@ -266,10 +338,60 @@ int Client::pasvMode()
 	return datafd;
 }
 
+//return retfd to accept conection,return -1 if error.
+int Client::portMode()
+{
+	int port = 2000;		
+	int retfd = openListenfd(port);
+	while(retfd == -1)
+	{
+		port++;
+		if(port == 2500)
+		{
+			std::cerr<<"port can't find a usable port in [2000,2500]."<<std::endl;
+			return -1;
+		}
+		retfd = openListenfd(port);
+	}
+
+	std::string ip;
+	if(getIP(ip) == -1)
+	{
+		std::cerr<<"port can't get local ip."<<std::endl;
+		return -1;
+	}
+#ifdef NAT
+	//active mode won't work if the ip is a private ip address.
+	ip = "127.0.0.1";
+#endif
+	int d1,d2,d3,d4;
+	sscanf(ip.c_str(),"%d.%d.%d.%d",&d1,&d2,&d3,&d4);
+	int d5 = port/256;
+	int d6 = port%256;
+	std::string msg = "port ";
+	std::stringstream ss;
+	ss<<d1<<","<<d2<<","<<d3<<","<<d4<<","<<d5<<","<<d6;
+	std::string temp;
+	ss>>temp;
+	ss.clear();
+	msg += temp;
+	sendMsg(msg);
+
+	std::string recv_msg;
+	recvMsg(recv_msg);
+	std::cout<<recv_msg<<std::endl;
+	if(getCode(recv_msg) != 200)
+	{
+		return -1;
+	}
+	return retfd;
+}
+
 int Client::doLs()
 {
 	int datafd;
-	if(passive_mode == true)
+	int retfd;//for port mode.
+	if(passive_mode == true)//pasv mode.
 	{
 		datafd = pasvMode();		
 		if(datafd == -1)
@@ -278,12 +400,28 @@ int Client::doLs()
 			return -1;
 		}
 	}	
-	else
+	else//port mode.
 	{
-		datafd = -1;	
+		retfd = portMode();
+		if(retfd == -1)
+		{
+			return -1;
+		}
 	}
 
 	sendMsg("list");
+
+	if(passive_mode == false)//port mode.
+	{
+		sockaddr_in serveraddr;
+		socklen_t addr_size = sizeof(sockaddr_in);
+		if((datafd = accept(retfd,(sockaddr*)&serveraddr,&addr_size)) == -1)
+		{
+			std::cout<<"local:failed to get connection."<<std::endl;
+			return -1;
+		}
+	}
+
 	std::string msg;
 	recvMsg(msg);
 	std::cout<<msg<<std::endl;
@@ -316,6 +454,7 @@ int Client::doLs()
 int Client::doGet(std::string msg)
 {
 	int datafd;
+	int retfd;//for port mode.
 	if(passive_mode == true)
 	{
 		datafd = pasvMode();		
@@ -325,9 +464,14 @@ int Client::doGet(std::string msg)
 			return -1;
 		}
 	}	
-	else
+	else//port mode.
 	{
-		datafd = -1;	
+		retfd = portMode();
+		if(retfd == -1)
+		{
+			return -1;
+		}
+
 	}
 
 	std::stringstream ss;	
@@ -345,6 +489,17 @@ int Client::doGet(std::string msg)
 	std::string command = "retr ";	
 	command += remote_name;
 	sendMsg(command);
+
+	if(passive_mode == false)//port mode.
+	{
+		sockaddr_in serveraddr;
+		socklen_t addr_size = sizeof(sockaddr_in);
+		if((datafd = accept(retfd,(sockaddr*)&serveraddr,&addr_size)) == -1)
+		{
+			std::cout<<"local:failed to get connection."<<std::endl;
+			return -1;
+		}
+	}
 
 	std::string recv_msg;
 	recvMsg(recv_msg);
@@ -418,6 +573,7 @@ int Client::doPut(std::string msg)
 
 
 	int datafd;
+	int retfd;//for port mode.
 	if(passive_mode == true)
 	{
 		datafd = pasvMode();		
@@ -427,14 +583,29 @@ int Client::doPut(std::string msg)
 			return -1;
 		}
 	}	
-	else
+	else//port mode.
 	{
-		datafd = -1;	
+		retfd = portMode();
+		if(retfd == -1)
+		{
+			return -1;
+		}
 	}
 		
 	std::string command = "stor ";
 	command += remote_name;
 	sendMsg(command);
+
+	if(passive_mode == false)//port mode.
+	{
+		sockaddr_in serveraddr;
+		socklen_t addr_size = sizeof(sockaddr_in);
+		if((datafd = accept(retfd,(sockaddr*)&serveraddr,&addr_size)) == -1)
+		{
+			std::cout<<"local:failed to get connection."<<std::endl;
+			return -1;
+		}
+	}
 
 	std::string recv_msg;
 	recvMsg(recv_msg);

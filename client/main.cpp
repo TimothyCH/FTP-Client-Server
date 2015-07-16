@@ -22,7 +22,7 @@ static const std::vector<std::string> command_vec
 	"rm",
 	"delete",
 	"rmdir",
-	"pasv",
+	"passive",
 };
 
 enum COMMAND
