@@ -42,6 +42,7 @@ const std::vector<std::string> command_vec
 	"rmd",
 	"mv",
 	"pasv",
+	"port",
 };
 
 enum COMMAND
@@ -61,6 +62,7 @@ enum COMMAND
 	RMD,
 	MV,
 	PASV,
+	PORT,
 };
 
 class ServerBox
@@ -84,6 +86,7 @@ private:
 	std::string current_dir;
 	int clientfd;
 	int datafd;
+	std::string port_info;//record port ip and port info.
 	std::string clientip;
 
 	bool is_login;

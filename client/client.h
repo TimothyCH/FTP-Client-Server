@@ -39,7 +39,8 @@ private:
 	int getCode(std::string msg);
 
 	int pasvMode();
-	int portMode();
+	int portModeSend();//send port and return socket.
+	int portModeConnect(int retfd);//listen on retfd and return datafd.
 	int pasvGetIPandPort(std::string msg,std::string& ip,int&port);
 };
 

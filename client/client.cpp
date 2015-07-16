@@ -339,7 +339,7 @@ int Client::pasvMode()
 }
 
 //return retfd to accept conection,return -1 if error.
-int Client::portMode()
+int Client::portModeSend()
 {
 	int port = 2000;		
 	int retfd = openListenfd(port);
@@ -387,6 +387,23 @@ int Client::portMode()
 	return retfd;
 }
 
+int Client::portModeConnect(int retfd)
+{
+	int datafd;
+	sockaddr_in serveraddr;
+	socklen_t addr_size = sizeof(sockaddr_in);
+	if((datafd = accept(retfd,(sockaddr*)&serveraddr,&addr_size)) == -1)
+	{
+		std::cout<<"local:failed to get connection."<<std::endl;
+		shutdown(retfd,SHUT_RDWR);
+		close(retfd);
+		return -1;
+	}
+	shutdown(retfd,SHUT_RDWR);
+	close(retfd);
+	return datafd;
+}
+
 int Client::doLs()
 {
 	int datafd;
@@ -400,9 +417,9 @@ int Client::doLs()
 			return -1;
 		}
 	}	
-	else//port mode.
+	else//port mode send connect.
 	{
-		retfd = portMode();
+		retfd = portModeSend();
 		if(retfd == -1)
 		{
 			return -1;
@@ -413,11 +430,9 @@ int Client::doLs()
 
 	if(passive_mode == false)//port mode.
 	{
-		sockaddr_in serveraddr;
-		socklen_t addr_size = sizeof(sockaddr_in);
-		if((datafd = accept(retfd,(sockaddr*)&serveraddr,&addr_size)) == -1)
+		datafd = portModeConnect(retfd);
+		if(datafd == -1)
 		{
-			std::cout<<"local:failed to get connection."<<std::endl;
 			return -1;
 		}
 	}
@@ -466,7 +481,7 @@ int Client::doGet(std::string msg)
 	}	
 	else//port mode.
 	{
-		retfd = portMode();
+		retfd = portModeSend();
 		if(retfd == -1)
 		{
 			return -1;
@@ -492,11 +507,9 @@ int Client::doGet(std::string msg)
 
 	if(passive_mode == false)//port mode.
 	{
-		sockaddr_in serveraddr;
-		socklen_t addr_size = sizeof(sockaddr_in);
-		if((datafd = accept(retfd,(sockaddr*)&serveraddr,&addr_size)) == -1)
+		datafd = portModeConnect(retfd);
+		if(datafd == -1)
 		{
-			std::cout<<"local:failed to get connection."<<std::endl;
 			return -1;
 		}
 	}
@@ -585,7 +598,7 @@ int Client::doPut(std::string msg)
 	}	
 	else//port mode.
 	{
-		retfd = portMode();
+		retfd = portModeSend();
 		if(retfd == -1)
 		{
 			return -1;
@@ -598,11 +611,9 @@ int Client::doPut(std::string msg)
 
 	if(passive_mode == false)//port mode.
 	{
-		sockaddr_in serveraddr;
-		socklen_t addr_size = sizeof(sockaddr_in);
-		if((datafd = accept(retfd,(sockaddr*)&serveraddr,&addr_size)) == -1)
+		datafd = portModeConnect(retfd);
+		if(datafd == -1)
 		{
-			std::cout<<"local:failed to get connection."<<std::endl;
 			return -1;
 		}
 	}
