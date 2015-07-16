@@ -1,7 +1,8 @@
+.gitignore
 *~
 test/*
 test*
 *.swp
 server/plan
-*log/*
+*/log/*
 */file/*

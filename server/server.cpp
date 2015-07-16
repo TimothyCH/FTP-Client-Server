@@ -1,6 +1,3 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -11,7 +8,6 @@
 
 #include <cstring>
 #include <fstream>
-#include <iostream>
 #include <algorithm>
 #include <sstream>
 #include <ctype.h>
@@ -20,6 +16,8 @@
 #include "server.h"
 #include "md5.h"
 
+//get listen socket on port.
+//return listen socket if success,-1 if error.
 static int open_listenfd(int port)
 {
 	int listenfd,optval = 1;
@@ -52,6 +50,7 @@ static int open_listenfd(int port)
 	return listenfd;
 }
 
+//in port mode,used to connect to client data socket.
 static int open_clientfd(char*ip,int port)
 {
 	int serverfd;
@@ -87,12 +86,14 @@ static int open_clientfd(char*ip,int port)
 	return serverfd;
 }
 
+//hash username and password.
 static std::string hash(std::string input)
 {
 	MD5 md5;
 	return md5.digestString((char*)input.c_str());	
 }
 
+//find number of command.
 static int findCommand(std::string command)
 {
 	command = toLower(command);
@@ -123,7 +124,9 @@ static std::string toLower(std::string input)
 	}
 	return str;
 }
-//get the first ip address that is not 127.0.0.1
+
+//get the first ip address that is not 127.0.0.1,
+//if not connected to internet,ip address is 127.0.0.1.
 static int getIP(std::string& ip)
 {
 	struct ifaddrs *ifAddrStruct = NULL;
@@ -154,6 +157,7 @@ static int getIP(std::string& ip)
 	ip = "127.0.0.1";
 	return 0;
 }
+
 
 ServerBox::ServerBox(int port,std::string root_dir_input)
 {
@@ -202,14 +206,14 @@ int ServerBox::startServe()
 		}
 		else if(pid == 0)
 		{
-			Server server(clientfd,inet_ntoa(clientaddr.sin_addr));	
+			Server server(clientfd);	
 			server.startServe();
 		}
 	}
 }
 
-Server::Server(int clientfd_input,std::string clientip_input):current_dir(root_dir),
-								clientfd(clientfd_input),datafd(-1),clientip(clientip_input),is_login(false)
+Server::Server(int clientfd_input):current_dir(root_dir),clientfd(clientfd_input),
+										datafd(-1),is_login(false)
 {
 }
 
@@ -229,16 +233,17 @@ int Server::sendMsg(std::string msg)
 	return 0;
 }
 
+//receive message,and separate the command and arg.
 int Server::recvMsg(std::string& command,std::string& arg)
 {
 	command = "";
 	arg = "";
 	std::string temp;
 	char ch;
-	while(arg.size() < MSGLEN)
+	while(arg.size() < MSGLEN)//message length must be less than MSGLEN:100
 	{
 		int ret;
-		if((ret = recv(clientfd,&ch,sizeof(char),0)) <= 0)
+		if((ret = recv(clientfd,&ch,sizeof(char),0)) <= 0)//recv once a char,not very good.
 		{
 			return -1;
 		}	
@@ -255,7 +260,7 @@ int Server::recvMsg(std::string& command,std::string& arg)
 	{
 		return 0;
 	}
-	temp = temp.substr(0,pos);//get the message.
+	temp = temp.substr(0,pos);//retrive \r\n.
 	if((pos = temp.find(" ")) == std::string::npos)
 	{
 		command = temp;
@@ -350,6 +355,7 @@ int Server::do_quit()
 	exit(0);
 }
 
+//receive usr and pass message,check for login.
 int Server::do_user(std::string arg)
 {
 	bool login_flag = true;
@@ -555,6 +561,7 @@ int Server::do_rmd(std::string arg)
 	return 0;
 }
 
+//open port to listen and accept client connection.
 int Server::do_pasv()
 {
 	int port = 2000;		
@@ -603,6 +610,7 @@ int Server::do_pasv()
 	return 0;
 }
 
+//first part of port mode,recv port mode message.
 int Server::doPortRecv(std::string arg)
 {
 	std::string port_info = arg;
@@ -616,6 +624,7 @@ int Server::doPortRecv(std::string arg)
 	return 0;
 }
 
+//second part of port mode,connect to client.
 int Server::doPortConnect()
 {
 	datafd = open_clientfd((char*)port_ip.c_str(),port_port);
@@ -626,6 +635,7 @@ int Server::doPortConnect()
 	}
 	return 0;
 }
+
 
 int Server::getIPandPortFromPortInfo(std::string port_info,std::string& ip,int& port)
 {
@@ -643,86 +653,6 @@ int Server::getIPandPortFromPortInfo(std::string port_info,std::string& ip,int& 
 	port = d5*256 + d6;
 	return 0;
 }
-
-
-/*
-//list the file name in the current_dir in alphabetical order,directories first then regular files.
-int Server::ls(std::string path,std::string& ret)
-{
-	DIR* dirp = opendir(path.c_str());
-	if(!dirp)
-	{
-		return -1;		
-	}
-	struct stat st;
-	struct dirent *dir;
-	std::vector<std::string> file_name;
-	std::vector<std::string> dir_name;
-	while((dir = readdir(dirp)) != NULL)
-	{
-		if(strcmp(dir->d_name,".") == 0 ||
-			   	strcmp(dir->d_name,"..") == 0)	
-		{
-			continue;
-		}
-		std::string full_path = path + dir->d_name;
-		if(lstat(full_path.c_str(),&st) == -1)
-		{
-			continue;
-		}
-		std::string name = dir->d_name;
-		if(S_ISDIR(st.st_mode))
-		{
-			name += "[d]";
-			dir_name.push_back(name);
-		}
-		else
-		{
-			file_name.push_back(name);
-		}
-	}
-
-	closedir(dirp);
-
-	sort(file_name.begin(),file_name.end());
-	sort(dir_name.begin(),dir_name.end());
-	
-	std::stringstream ss_ret;
-	int count = 0;
-
-	for(auto i=dir_name.begin();i!=dir_name.end();i++)
-	{
-		ss_ret<<*i;	
-		count++;
-		if(count%5 == 0)
-		{
-			ss_ret<<std::endl;
-		}
-		else
-		{
-			ss_ret<<"  ";
-		}
-	}
-	
-	for(auto i=file_name.begin();i!=file_name.end();i++)
-	{
-		ss_ret<<*i;
-		count++;
-		if(count%5 == 0 && i != file_name.end() - 1)
-		{
-			ss_ret<<std::endl;
-		}
-		else
-		{
-			ss_ret<<"  ";
-		}
-	}
-
-	ret = ss_ret.str();
-	
-	return 0;
-}
-*/
 
 int Server::getFileInfo(std::string file_path,std::string file_name,std::string& ret)
 {
@@ -827,6 +757,7 @@ int Server::getFileInfo(std::string file_path,std::string file_name,std::string&
 	return 0;
 }
 
+//list the information of all the files in @dir_path.
 int Server::ls(std::string dir_path,std::string& ret)
 {
 	ret = "";	
@@ -850,7 +781,7 @@ int Server::ls(std::string dir_path,std::string& ret)
 		{
 			continue;
 		}
-		ret += file_info + "\r\n";
+		ret += file_info + "\r\n";//each information end with \r\n
 	}
 	closedir(dirp);
 	return 0;
@@ -873,6 +804,8 @@ int Server::do_list()
 	std::string ret;		
 	if(ls(current_dir,ret) == -1)
 	{
+		close(datafd);
+		datafd = -1;
 		sendMsg("226 Directory Send Ok.");
 		return -1;
 	}
@@ -888,6 +821,7 @@ int Server::do_list()
 		return -1;
 	}
 	*/
+
 	//send each piece at a time.
 	if(ret.size() == 0)//incase ret is empty and nothing send.
 	{
@@ -910,18 +844,7 @@ int Server::do_list()
 			return -1;
 		}		
 	}
-	//too slow to send one by one.
-	/*
-	for(int i=0;i<(int)ret.size();i++)
-	{
-		char ch = ret[i];
-		if(send(datafd,&ch,1,0) <= 0)
-		{
-			sendMsg("425 data connection failed.");	
-			return -1;
-		}
-	}
-	*/
+
 	shutdown(datafd,SHUT_RDWR);
 	close(datafd);
 	datafd = -1;
@@ -933,12 +856,12 @@ int Server::do_list()
 
 int Server::do_retr(std::string arg)
 {
-	if(datafd == -1)
+	if(datafd == -1)//datafd = -1 means no connection,datafd > 0 means pasv mode.
 	{
 		sendMsg("425 Use PORT or PASV first.");
 		return -1;
 	}	
-	if(datafd == -2)
+	if(datafd == -2)//datafd = -2 means port mode.
 	{
 		doPortConnect();
 	}
@@ -999,12 +922,12 @@ int Server::do_retr(std::string arg)
 
 int Server::do_stor(std::string arg)
 {
-	if(datafd == -1)
+	if(datafd == -1)//datafd = -1 means no connection,datafd > 0 means pasv mode.
 	{
 		sendMsg("425 Use PORT or PASV first.");
 		return -1;
 	}	
-	if(datafd == -2)
+	if(datafd == -2)//datafd = -2 means port mode.
 	{
 		doPortConnect();
 	}

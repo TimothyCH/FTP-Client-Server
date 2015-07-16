@@ -9,6 +9,47 @@
 
 #define MSGLEN 100
 
+static const std::vector<std::string> command_vec
+{
+	"quit",
+	"user",
+	"pass",
+	"size",
+	"cd",
+	"cdup",
+	"ls",
+	"get",
+	"mget",
+	"put",
+	"mput",
+	"mkdir",
+	"pwd",
+	"rm",
+	"delete",
+	"rmdir",
+	"passive",
+};
+
+enum COMMAND
+{
+	QUIT,
+	USER,
+	PASS,
+	SIZE,
+	CD,
+	CDUP,
+	LS,
+	GET,
+	MGET,
+	PUT,
+	MPUT,
+	MKDIR,
+	PWD,
+	RM,
+	DELETE,
+	RMDIR,
+	PASV,
+};
 
 static int openClientfd(char*ip,int port);
 static int openListenfd(int port);

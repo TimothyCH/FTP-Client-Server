@@ -1,51 +1,9 @@
-#include <iostream>
 #include <stdlib.h>
 #include <algorithm>
 
 #include "client.h"
 
-static const std::vector<std::string> command_vec
-{
-	"quit",
-	"user",
-	"pass",
-	"size",
-	"cd",
-	"cdup",
-	"ls",
-	"get",
-	"mget",
-	"put",
-	"mput",
-	"mkdir",
-	"pwd",
-	"rm",
-	"delete",
-	"rmdir",
-	"passive",
-};
-
-enum COMMAND
-{
-	QUIT,
-	USER,
-	PASS,
-	SIZE,
-	CD,
-	CDUP,
-	LS,
-	GET,
-	MGET,
-	PUT,
-	MPUT,
-	MKDIR,
-	PWD,
-	RM,
-	DELETE,
-	RMDIR,
-	PASV,
-};
-
+//find command number.
 static int findCommand(std::string command)
 {
 	auto iter = find(command_vec.begin(),command_vec.end(),command);	
@@ -56,6 +14,7 @@ static int findCommand(std::string command)
 	return iter - command_vec.begin();
 }
 
+//capital all the letter in the string.
 static std::string toUpper(std::string input)
 {
 	std::string str = "";
@@ -65,7 +24,7 @@ static std::string toUpper(std::string input)
 	}
 	return str;
 }
-
+//uncapital all the letter in the string.
 static std::string toLower(std::string input)
 {
 	std::string str = "";
@@ -107,8 +66,6 @@ int main(int argc,char* argv[])
 		ss>>command;
 		ss.clear();
 		command = toLower(command);
-		//test
-		std::cout<<"command:"<<command<<std::endl;
 		int com_num = findCommand(command);
 		if(com_num == -1)
 		{

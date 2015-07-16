@@ -5,15 +5,17 @@
 
 #include <sstream> // for do_login()
 #include <cstring>
-#include <regex.h>
 #include <unistd.h>
 #include <fstream>
 
+#include <regex.h>
+
 #include "client.h"
 
-#define NAT
+#define NAT//private address will not be accepted by server in port mode.
 
-
+//connect to server.
+//return connected socket if success,-1 if error.
 static int openClientfd(char *ip,int port)
 {
 	int serverfd;
@@ -49,6 +51,8 @@ static int openClientfd(char *ip,int port)
 	return serverfd;
 }
 
+//open listen socket at @port.
+//return listen socket if success,-1 if error.
 static int openListenfd(int port)
 {
 	int listenfd,optval = 1;
@@ -81,17 +85,16 @@ static int openListenfd(int port)
 	return listenfd;
 }
 
+//get local machine's ip address,
+//ip = 127.0.0.1 if no internet connected.
 static int getIP(std::string& ip)
 {
-	
 	struct ifaddrs *ifAddrStruct = NULL;
 	void *tmpAddPtr = NULL;
 	if(getifaddrs(&ifAddrStruct) == -1)
 	{
 		return -1;
 	}
-
-
 	while(ifAddrStruct != NULL)
 	{
 		if(ifAddrStruct->ifa_addr->sa_family == AF_INET)
@@ -101,20 +104,19 @@ static int getIP(std::string& ip)
 			inet_ntop(AF_INET,tmpAddPtr,addressBuffer,INET_ADDRSTRLEN);
 			//printf("%s IP Address %s\n",ifAddrStruct->ifa_name,addressBuffer);
 			ip = addressBuffer;
-			if(ip != "127.0.0.1")
+			if(ip != "127.0.0.1")//return the first ip address that was not 127.0.0.1
 			{
 				return 0;
 			}
 		}
 		ifAddrStruct = ifAddrStruct->ifa_next;
-
 	}
-	ip = "127.0.0.1";
+	ip = "127.0.0.1";//if no internet connected,ip = 127.0.0.1
 	return 0;
 }
 
 
-
+//conenct to server and recv the welcome message.
 Client::Client(char* ip,int port):login_flag(false),passive_mode(true)
 {
 	if((serverfd = openClientfd(ip,port)) == -1)
@@ -176,30 +178,9 @@ int Client::recvMsg(std::string& msg)
 	}
 	msg = msg.substr(0,pos);
 	return 0;
-/*
-	msg = "";
-	while(true)
-	{
-		int num;
-		char buf[MSGLEN];
-		if((num = recv(serverfd,buf,sizeof(buf),0)) <= 0)
-		{
-			break;	
-		}	
-		std::string temp = buf;	
-		temp = temp.substr(0,num);
-		msg = msg + temp;
-	}
-	size_t pos;
-	if((pos = msg.find("\r\n")) == std::string::npos)
-	{
-		return 0;	
-	}
-	msg = msg.substr(0,pos);
-	return 0;
-*/
 }
 
+//get the code number in the message.
 int Client::getCode(std::string msg)
 {
 	int code;
@@ -209,6 +190,7 @@ int Client::getCode(std::string msg)
 	ss.clear();
 	return code;
 }
+
 
 int Client::doLogin()
 {
@@ -253,6 +235,7 @@ bool Client::isLogin()
 	return login_flag;
 }
 
+//passive 
 int Client::doPasv()
 {
 	if(passive_mode == false)
@@ -268,6 +251,8 @@ int Client::doPasv()
 	return 0;
 }
 
+
+//get the ip address and port in the received pasv message.
 int Client::pasvGetIPandPort(std::string msg,std::string& ip,int& port)
 {
 	char match[100];
@@ -313,6 +298,7 @@ int Client::pasvGetIPandPort(std::string msg,std::string& ip,int& port)
 	return 0;
 }
 
+//send pasv message to server.
 int Client::pasvMode()
 {
 	sendMsg("pasv");
@@ -338,9 +324,12 @@ int Client::pasvMode()
 	return datafd;
 }
 
+//first part of port mode.
+//send port message,get listen socket:retfd to wait for the connection of server.
 //return retfd to accept conection,return -1 if error.
 int Client::portModeSend()
 {
+	//choose first port in [2000,2500] that can be used.
 	int port = 2000;		
 	int retfd = openListenfd(port);
 	while(retfd == -1)
@@ -389,6 +378,8 @@ int Client::portModeSend()
 	return retfd;
 }
 
+//second part of port mode.
+//wait for the server connection.
 int Client::portModeConnect(int retfd)
 {
 	int datafd;
@@ -451,14 +442,7 @@ int Client::doLs()
 		close(retfd);
 		return -1;
 	}
-	//too slow to recv one by one.
-	/*
-	char ch;
-	while(recv(datafd,&ch,1,0) > 0)
-	{
-		std::cout<<ch;
-	}
-	*/
+
 	while(true)
 	{
 		char buf[MSGLEN];	
@@ -499,7 +483,7 @@ int Client::doGet(std::string msg)
 		}
 
 	}
-
+	//get local_name and remote_name.
 	std::stringstream ss;	
 	ss<<msg;
 	std::string com_temp;
@@ -673,6 +657,7 @@ int Client::doPut(std::string msg)
 	return 0;
 }
 
+//for those command simply send message and receive a message.
 int Client::doCommand(std::string msg)
 {
 	if(sendMsg(msg) == -1)
@@ -688,6 +673,7 @@ int Client::doCommand(std::string msg)
 	return 0;
 }
 
+//for command that is different with the command in message.
 int Client::doCommand(std::string msg,std::string new_com)
 {
 	std::stringstream ss;

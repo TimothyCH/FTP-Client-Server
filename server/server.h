@@ -1,7 +1,6 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include <iostream>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -9,21 +8,22 @@
 #include <cstring>
 #include <map>
 #include <vector>
+#include <iostream>
 
 #include "log.h"
 
 #define USER_DB_PATH "usr.data"
 #define MSGLEN 100
 
-static std::map<std::string,std::string> user_pass;
-static std::string root_dir;
+static std::map<std::string,std::string> user_pass;//store the map of username and password.
+static std::string root_dir;//store the root_dir.
 
 static int openListenfd(int port);
-static std::string hash(std::string input);
-static int findCommand(std::string command);
+static std::string hash(std::string input);//used to hash username and password.
+static int findCommand(std::string command);//find the number of command.
 static std::string toUpper(std::string str);
 static std::string toLower(std::string str);
-static std::string getIP();
+static std::string getIP();//get local ip address.
 
 const std::vector<std::string> command_vec
 {
@@ -79,7 +79,7 @@ private:
 class Server
 {
 public:
-	explicit Server(int clientfd_input,std::string clientip_input);
+	explicit Server(int clientfd_input);
 	~Server();
 	int startServe();
 private:
@@ -88,7 +88,6 @@ private:
 	int datafd;//datafd = -1 means no connection,datafd = -2 mean port mode.
 	std::string port_ip;//record ip in portmode.
 	int port_port;//record port in portmode.
-	std::string clientip;
 
 	bool is_login;
 
@@ -97,27 +96,33 @@ private:
 	int recvMsg(std::string& command,std::string& arg);
 
 	int do_quit();
+	int do_cdup();
+	int do_pwd();
 	int do_user(std::string arg);
 	int do_size(std::string arg);
 	int do_cwd(std::string arg);
-	int do_cdup();
+
 	int mk_dir(std::string dir_name);
 	int do_mkd(std::string arg);
-	int do_pwd();
+
 	int do_dele(std::string arg);
-	int do_rmd(std::string arg);
-	int do_mv(std::string arg);
 	int rm_dir(std::string dir_full_path);
+	int do_rmd(std::string arg);
+
+	int do_mv(std::string arg);
+
 	int getFileInfo(std::string file_path,std::string file_name,std::string& ret);
 	int ls(std::string path,std::string& ret);
 	int do_list();
+
 	int do_retr(std::string arg);
 	int do_stor(std::string arg);
 
 	int do_pasv();
-	int doPortRecv(std::string arg);
-	int doPortConnect();
+	int doPortRecv(std::string arg);//first part of port mode,recv client data ip port info.
+	int doPortConnect();//second part of port,make connection.
 	int getIPandPortFromPortInfo(std::string port_info,std::string& ip,int& port);
+
 	int check_filename(std::string filename);
 	int check_filename_out_of_bound(std::string filename);
 };
