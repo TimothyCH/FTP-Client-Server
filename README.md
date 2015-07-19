@@ -13,6 +13,6 @@ Server:
 
 start:
 
-  client:    ./client <ip> <port>
+  client:    ./client ip port
 
-  server:    ./server <port> <root_dir_path>
+  server:    ./server port root_dir_path
