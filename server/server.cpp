@@ -13,6 +13,8 @@
 #include <ctype.h>
 #include <dirent.h>
 
+#include <sqlite3.h>
+
 #include "server.h"
 #include "md5.h"
 
@@ -166,7 +168,8 @@ ServerBox::ServerBox(int port,std::string root_dir_input)
 		Log("ServerBox open_listenfd error.");	
 		exit(-1);
 	}	
-
+//changed to database.
+/*
 	user_pass.clear();	
 	std::fstream fs;
 	fs.open(USER_DB_PATH,std::ios::in);
@@ -182,6 +185,7 @@ ServerBox::ServerBox(int port,std::string root_dir_input)
 		user_pass[username] = password;
 	}
 	fs.close();
+*/
 	root_dir = root_dir_input;
 }
 
@@ -355,16 +359,28 @@ int Server::do_quit()
 	exit(0);
 }
 
+//the callback function used in do_user() sql requery.
+static int sqlCallBack(void* arg,int argc,char* argv[],char *azColName[])
+{
+	if(argv){};//unused.
+	if(azColName){};//unused.
+	bool *flag = (bool*)arg;//the callback arg.
+	if(argc != 2)
+	{
+		*flag = false;
+	}
+	else
+	{
+		*flag = true;
+	}
+	return 0;
+}
+
+
 //receive usr and pass message,check for login.
 int Server::do_user(std::string arg)
 {
-	bool login_flag = true;
-	std::string hash_username = hash(arg);
-	auto iter = user_pass.find(hash_username);
-	if(iter == user_pass.end())
-	{
-		login_flag = false;
-	}
+	std::string username = arg;
 	sendMsg("331 Please specify the password.");
 	std::string command,password;
 	recvMsg(command,password);
@@ -375,15 +391,34 @@ int Server::do_user(std::string arg)
 		recvMsg(command,password);
 		com_num = findCommand(command);
 	}
-	std::string hash_password = hash(password);	
-	if(login_flag == false)
+	if(username.size() == 0 || password.size() == 0)
 	{
-		sendMsg("530 Login incorrect.");
 		return 0;
 	}
-	if((*iter).second == hash_password)
+	std::string hash_password = hash(password);//get the hashed password.
+	
+	sqlite3 *sql;	
+	if(sqlite3_open(USER_DB_PATH,&sql) != SQLITE_OK)
 	{
-		sendMsg("230 Login successfully.");
+		sendMsg("530 server database error.");
+		return -1;
+	}
+	std::string statement = "select * from ";
+	statement = statement + DB_TABLE_NAME + " where username = "
+					+ "\"" + username + "\" and password = "
+				   + "\"" + hash_password + "\";";	
+	char *db_err;
+	bool temp_flag = false;//arg into the callback function.
+	if(sqlite3_exec(sql,statement.c_str(),sqlCallBack,
+			&temp_flag,&db_err) != SQLITE_OK)
+	{
+		sendMsg("530 server database error.");
+		return -1;
+	}
+	
+	if(temp_flag == true)
+	{
+		sendMsg("230 Login successful.");
 		is_login = true;
 		return 0;
 	}
@@ -393,6 +428,8 @@ int Server::do_user(std::string arg)
 		sendMsg("530 Login incorrect.");
 		return 0;
 	}
+
+	return 0;
 }
 
 int Server::do_size(std::string arg)

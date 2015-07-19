@@ -12,10 +12,11 @@
 
 #include "log.h"
 
-#define USER_DB_PATH "usr.data"
+#define USER_DB_PATH "usr.db"
+#define DB_TABLE_NAME "usr_info"
 #define MSGLEN 100
 
-static std::map<std::string,std::string> user_pass;//store the map of username and password.
+//static std::map<std::string,std::string> user_pass;//store the map of username and password.
 static std::string root_dir;//store the root_dir.
 
 static int openListenfd(int port);
@@ -24,6 +25,8 @@ static int findCommand(std::string command);//find the number of command.
 static std::string toUpper(std::string str);
 static std::string toLower(std::string str);
 static std::string getIP();//get local ip address.
+
+static int sqlCallBack(void* arg,int argc,char* argv[],char *azColName[]);//the callback function used in sql quiry in do_user();
 
 const std::vector<std::string> command_vec
 {
