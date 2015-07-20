@@ -10,6 +10,8 @@
 #include <vector>
 #include <iostream>
 
+#include <sqlite3.h>
+
 #include "log.h"
 
 #define USER_DB_PATH "usr.db"
@@ -18,6 +20,8 @@
 
 //static std::map<std::string,std::string> user_pass;//store the map of username and password.
 static std::string root_dir;//store the root_dir.
+
+static sqlite3* sql;//sql for usr.db
 
 static int openListenfd(int port);
 static std::string hash(std::string input);//used to hash username and password.

@@ -13,8 +13,6 @@
 #include <ctype.h>
 #include <dirent.h>
 
-#include <sqlite3.h>
-
 #include "server.h"
 #include "md5.h"
 
@@ -168,6 +166,12 @@ ServerBox::ServerBox(int port,std::string root_dir_input)
 		Log("ServerBox open_listenfd error.");	
 		exit(-1);
 	}	
+
+	if(sqlite3_open(USER_DB_PATH,&sql) != SQLITE_OK)
+	{
+		Log("ServerBox sqlite database open error.");
+		exit(-1);
+	}
 //changed to database.
 /*
 	user_pass.clear();	
@@ -189,7 +193,10 @@ ServerBox::ServerBox(int port,std::string root_dir_input)
 	root_dir = root_dir_input;
 }
 
-ServerBox::~ServerBox(){}
+ServerBox::~ServerBox()
+{
+	sqlite3_close(sql);//close sql.
+}
 
 
 int ServerBox::startServe()
@@ -397,12 +404,6 @@ int Server::do_user(std::string arg)
 	}
 	std::string hash_password = hash(password);//get the hashed password.
 	
-	sqlite3 *sql;	
-	if(sqlite3_open(USER_DB_PATH,&sql) != SQLITE_OK)
-	{
-		sendMsg("530 server database error.");
-		return -1;
-	}
 	std::string statement = "select * from ";
 	statement = statement + DB_TABLE_NAME + " where username = "
 					+ "\"" + username + "\" and password = "
@@ -415,7 +416,7 @@ int Server::do_user(std::string arg)
 		sendMsg("530 server database error.");
 		return -1;
 	}
-	
+
 	if(temp_flag == true)
 	{
 		sendMsg("230 Login successful.");
